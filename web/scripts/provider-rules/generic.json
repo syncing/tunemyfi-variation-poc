@@ -1,0 +1,14 @@
+{
+  "includePatterns": [],
+  "excludePatterns": [
+    "/preview/",
+    "thumbnail",
+    "thumb",
+    "favicon",
+    "logo"
+  ],
+  "allowedExtensions": ["jpg", "jpeg", "png", "webp", "avif"],
+  "allowedContentTypes": ["image/"],
+  "minBytes": 100000,
+  "dedupe": true
+}

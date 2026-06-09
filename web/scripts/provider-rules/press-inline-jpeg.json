@@ -1,0 +1,12 @@
+{
+  "includePatterns": [
+    "/inline/no/"
+  ],
+  "excludePatterns": [
+    "/preview/"
+  ],
+  "allowedExtensions": ["jpg", "jpeg"],
+  "allowedContentTypes": ["image/jpeg"],
+  "minBytes": 100000,
+  "dedupe": true
+}

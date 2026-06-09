@@ -1,0 +1,23 @@
+{
+  "productSlug": "sony-wh-1000xm6",
+  "productName": "Sony WH-1000XM6",
+  "resources": [
+    {
+      "resourceId": "press-black-silver",
+      "resourceName": "Press Images - Black Siver",
+      "sourcePageUrl": "https://www.sony.eu/presscentre/media/album/d0963b7c-1774-4a5f-b159-6739c8607ab5",
+      "rule": "generic",
+      "assetCount": 12,
+      "updatedAt": "2026-06-09T07:48:49Z"
+    },
+    {
+      "resourceId": "press-sand-pink",
+      "resourceName": "Press Images - Sand Pink",
+      "sourcePageUrl": "https://www.sony.eu/presscentre/media/album/bba2b823-312b-4e09-a3b5-7313736ad69f",
+      "rule": "press-inline-jpeg",
+      "assetCount": 32,
+      "updatedAt": "2026-06-09T07:47:20Z"
+    }
+  ],
+  "updatedAt": "2026-06-09T07:48:49Z"
+}

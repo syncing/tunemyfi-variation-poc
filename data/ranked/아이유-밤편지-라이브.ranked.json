@@ -1,0 +1,410 @@
+{
+  "query": "아이유 밤편지 라이브",
+  "sourceFile": "/home/hycho/projects/tunemyfi-variation-poc/data/variations/아이유-밤편지-라이브.json",
+  "model": "qwen3:32b",
+  "candidateCount": 10,
+  "ranked": [
+    {
+      "videoId": "2ltiSmgb-Sc",
+      "url": "https://www.youtube.com/watch?v=2ltiSmgb-Sc",
+      "title": "아이유 - 밤편지 [유희열의 스케치북/You Heeyeol’s Sketchbook] | KBS 200918 방송",
+      "channelTitle": "KBS Kpop",
+      "duration": "PT4M34S",
+      "viewCount": 1473693,
+      "likeCount": 25146,
+      "commentCount": 652,
+      "judgement": {
+        "valid_variation": true,
+        "variation_type": "live_performance",
+        "audio_quality_score": 7,
+        "performance_score": 9,
+        "uniqueness_score": 8,
+        "audiophile_interest_score": 7,
+        "comment_signal_score": 8,
+        "recommendation_score": 8,
+        "reason": "KBS 방송 무대에서의 라이브 연주로, 스튜디오 버전과 비교해 더 감성적인 분위기를 느낄 수 있다. 음질은 방송 특성상 약간의 제약이 있지만, 아이유의 목소리 표현과 무대 연출이 돋보인다. 댓글에서 음색의 따뜻함과 감동을 언급하는 내용이 많아 음향 애호가에게도 추천할 만하다.",
+        "why_this_version": "아이유의 감성적인 보컬과 밤바다를 연상시키는 무대 연출이 돋보이는 라이브 버전이다. 스튜디오 버전과 비교해 더 자연스럽고 진정성 있는 분위기를 느낄 수 있다.",
+        "compared_to_original": "라이브 버전은 스튜디오 버전보다 더 감성적이며, 무대 연출과 보컬 표현이 독특하다. 음질은 약간의 제약이 있지만, 전체적인 분위기에서 감동을 전달한다.",
+        "best_for": [
+          "감성적인 분위기",
+          "보컬 중심 청취"
+        ],
+        "listener_match": [
+          "Warm Vocal",
+          "HD650",
+          "진공관"
+        ],
+        "positive_signals": [
+          "KBS 방송 무대에서의 라이브 연주",
+          "아이유의 감성적인 보컬 표현",
+          "무대 연출의 밤바다 분위기",
+          "댓글에서 음색의 따뜻함과 감동 언급"
+        ],
+        "negative_signals": [
+          "방송 특성상 음질에 약간의 제약"
+        ],
+        "best_use_case": "감성적인 분위기를 느끼고 싶거나, 아이유의 보컬을 중심으로 들을 때 추천된다. 특히 밤에 편안하게 들으면 스트레스 해소에 도움이 될 수 있다."
+      }
+    },
+    {
+      "videoId": "_MsXGbzpalw",
+      "url": "https://www.youtube.com/watch?v=_MsXGbzpalw",
+      "title": "[피크닉라이브소풍] 아이유 - 밤편지 (IU - Through the Night) l S2 EP.104 (ENG)",
+      "channelTitle": "ALL THE K-POP",
+      "duration": "PT4M25S",
+      "viewCount": 1426583,
+      "likeCount": 21431,
+      "commentCount": 332,
+      "judgement": {
+        "valid_variation": true,
+        "variation_type": "live_performance",
+        "audio_quality_score": 7,
+        "performance_score": 9,
+        "uniqueness_score": 6,
+        "audiophile_interest_score": 8,
+        "comment_signal_score": 7,
+        "recommendation_score": 8,
+        "reason": "이 라이브 공연은 아이유의 감성적인 보컬과 서정적인 분위기를 잘 담아내고 있다. 음질은 라이브 특성상 약간의 노이즈가 있지만 전체적으로 명료하다. 댓글에서 음악적 감동과 보컬의 매력을 강조하는 언급이 많다.",
+        "why_this_version": "아이유의 감성적인 보컬과 라이브 공연의 자연스러운 분위기",
+        "compared_to_original": "원곡 대비 보다 감성적이고 서정적인 해석이 돋보인다",
+        "best_for": [
+          "감성적인 음악 감상",
+          "보컬 중심의 청취"
+        ],
+        "listener_match": [
+          "Warm Vocal",
+          "HD650",
+          "진공관"
+        ],
+        "positive_signals": [
+          "문학 작품의 한 장면같은 아이유의 서정적인 목소리",
+          "Every time I hear this song makes me emotional and makes me fall inlove with IU.",
+          "That note change at 1:24 is so addictive",
+          "The lyrics remind me of Hotel Del Luna, with the firefly, beach and fear of disappearing far away ~"
+        ],
+        "negative_signals": [
+          "라이브 특성상 약간의 노이즈 존재"
+        ],
+        "best_use_case": "감성적인 분위기에서 감성적인 보컬과 서정적인 가사에 집중할 때 추천"
+      }
+    },
+    {
+      "videoId": "DFzPmaNb7fk",
+      "url": "https://www.youtube.com/watch?v=DFzPmaNb7fk",
+      "title": "[IU] Through the Night(밤편지) Concert Live Clip (@ 2017 Tour ‘Palette’)",
+      "channelTitle": "이지금 [IU Official]",
+      "duration": "PT4M27S",
+      "viewCount": 780376,
+      "likeCount": 21115,
+      "commentCount": 516,
+      "judgement": {
+        "valid_variation": true,
+        "variation_type": "live_performance",
+        "audio_quality_score": 7,
+        "performance_score": 9,
+        "uniqueness_score": 6,
+        "audiophile_interest_score": 8,
+        "comment_signal_score": 8,
+        "recommendation_score": 8,
+        "reason": "아이유의 공식 라이브 영상으로, 2017년 투어 'Palette'에서 촬영된 '밤편지' 공연 클립이다. 음원과 거의 동일한 구성이지만, 라이브 공연의 에너지와 감정이 더해져 있다. 콘서트 현장의 분위기와 아티스트의 열정이 느껴지는 버전이다.",
+        "why_this_version": "공식 채널에서 제공하는 라이브 버전으로, 아이유의 라이브 실력과 감정 전달력을 체험할 수 있다. 특히, 라이브 공연의 분위기와 아티스트의 열정이 더해져 음원과는 다른 매력을 느낄 수 있다.",
+        "compared_to_original": "음원과 거의 동일한 구성이지만, 라이브 공연의 에너지와 감정이 더해져 있다. 콘서트 현장의 분위기와 아티스트의 열정이 느껴지는 버전이다.",
+        "best_for": [
+          "감정 전달",
+          "보컬 중심 청취"
+        ],
+        "listener_match": [
+          "Warm Vocal",
+          "HD650",
+          "진공관"
+        ],
+        "positive_signals": [
+          "항상 느낀거지만 아이유는 음원보다 라이브가 훨씬 좋은 '진짜' 가수다.\n아이유의 풍부한 감성을 음원이 감히 못담아 내는거 같다.\n아이유의 라이브는 훌륭함 그 자체다.",
+          "블루레이 말씀들 하시는데 진짜 아이유 콘서트는 현장에 꼭 가야해요ㅠㅠ 진짜 유튜브 동영상이나 가요무대는 라이브 20퍼센트 정도 밖에 못담아요.. 특히 3단고음 무대.. 글고 그 열기가..어후!! 최고였어요!! 인생 처음 콘서트가 이번 서토콘이었는데 수고해주신 스탭분들 댄서분들 스타일리스트분들 아이유님 다시한번 고생하셨습니다! 그러니 서울콘의 아이유티비를 보여주세요!!",
+          "Listening to her voice was like some kind of a meditation to me",
+          "Thanks to your voice, melody, music and lyrics, I am still breathing. No matter how hard it is your voice has a strange ability to heal me at that moment. Thank you Lee Ji Eun si. Wish you all the happiness in this world.",
+          "7 years after this, the video was produced IU  is still a Goddess. She was put here on earth to spread light, comfort, joy, and love. Mission accomplished."
+        ],
+        "negative_signals": [
+          "4K 없습니까?!!!! 시대가 어느시대인데 1080입니까...",
+          "her live version sounds exactly the same as the album"
+        ],
+        "best_use_case": "이 버전은 아이유의 라이브 실력과 감정 전달력을 체험하고 싶은 청취자에게 추천된다. 특히, 라이브 공연의 분위기와 아티스트의 열정을 느끼고 싶은 경우에 적합하다."
+      }
+    },
+    {
+      "videoId": "K8zobtYSOmc",
+      "url": "https://www.youtube.com/watch?v=K8zobtYSOmc",
+      "title": "아이유(IU) - 밤편지♬(Through the Night) | 2017 SBS 가요대전 | SBS ENTER",
+      "channelTitle": "SBS Entertainment",
+      "duration": "PT4M21S",
+      "viewCount": 1135154,
+      "likeCount": 30885,
+      "commentCount": 606,
+      "judgement": {
+        "valid_variation": true,
+        "variation_type": "live_performance",
+        "audio_quality_score": 7,
+        "performance_score": 9,
+        "uniqueness_score": 7,
+        "audiophile_interest_score": 8,
+        "comment_signal_score": 8,
+        "recommendation_score": 8,
+        "reason": "SBS 가요대전 무대에서의 아이유 '밤편지' 라이브 버전입니다. 공식 라이브 무대로, 음질은 라이브 특성상 7점, 연주력과 감정 전달은 높은 평가를 받고 있습니다. 음향 시스템과 조명 효과에 대한 언급이 있어 고음질 장비에서의 감상이 가능합니다. 아이유의 목소리와 무대 매너가 돋보이며, 감성적인 표현이 독특합니다.",
+        "why_this_version": "공식 라이브 무대에서의 감성적인 표현과 아이유의 목소리가 돋보이는 버전입니다.",
+        "compared_to_original": "라이브 버전으로, 감정 전달과 무대 분위기가 원곡 대비 더 강조된 것으로 보입니다.",
+        "best_for": [
+          "감정 전달",
+          "보컬 중심 청취"
+        ],
+        "listener_match": [
+          "Warm Vocal",
+          "HD650",
+          "진공관"
+        ],
+        "positive_signals": [
+          "아이유 목소리만큼 사람의 마음이 몽글몽글 따뜻해지는 목소리가 있을까 싶다..",
+          "the hmmmmm part always calm me, what a beautiful song together with a beautiful voice",
+          "man the goosebumps are way more intense whenever she sings this song live",
+          "OMG the stage is just on point. Really admire the stage producer, everything is perfect from the sound system to the lighting effect, virtual scenes"
+        ],
+        "negative_signals": [
+          "라이브 특성상 음질이 스튜디오 버전보다 다소 떨어질 수 있음"
+        ],
+        "best_use_case": "감성적인 감상이나, 아이유의 보컬을 중심으로 무대 분위기를 함께 즐기고 싶을 때 추천됩니다."
+      }
+    },
+    {
+      "videoId": "AmCH9fV0Nsk",
+      "url": "https://www.youtube.com/watch?v=AmCH9fV0Nsk",
+      "title": "유희열의 스케치북 Yu Huiyeol's Sketchbook - 아이유 - 밤편지. 20170429",
+      "channelTitle": "KBS Kpop",
+      "duration": "PT4M19S",
+      "viewCount": 500928,
+      "likeCount": 9936,
+      "commentCount": 250,
+      "judgement": {
+        "valid_variation": true,
+        "variation_type": "live_performance",
+        "audio_quality_score": 7,
+        "performance_score": 9,
+        "uniqueness_score": 7,
+        "audiophile_interest_score": 8,
+        "comment_signal_score": 9,
+        "recommendation_score": 8,
+        "reason": "이 라이브 버전은 아이유의 감성적인 보컬과 진정성 있는 연주가 돋보이는 공연이다. 음질은 라이브 특성상 약간의 노이즈가 있지만 전반적으로 명확하고 따뜻한 사운드를 제공한다. 댓글에서 'She sounded exactly like the cd!'와 같은 음질 관련 긍정적 피드백이 있으며, 'No lipsync . real idol'과 같은 진정성 있는 공연에 대한 언급이 있어 라이브의 감동을 전달한다. 특히 감성적인 가사와 보컬의 조화가 돋보이며, 원곡과 비교해 더 깊은 감정을 느낄 수 있다.",
+        "why_this_version": "아이유의 감성적인 보컬과 진정성 있는 연주가 돋보이는 라이브 버전이다. 공연 특유의 분위기와 감정이 더해져 원곡과는 또 다른 매력을 느낄 수 있다.",
+        "compared_to_original": "라이브 버전은 더 깊은 감정과 공연 분위기가 더해져 원곡과는 다른 감성을 전달한다.",
+        "best_for": [
+          "감정 전달",
+          "보컬 중심 청취"
+        ],
+        "listener_match": [
+          "Warm Vocal",
+          "HD650",
+          "진공관"
+        ],
+        "positive_signals": [
+          "She sounded exactly like the cd!",
+          "No lipsync . real idol",
+          "Just a chair, mic and her amazing voice is what IU needs to touch the audience's hearts",
+          "아이유의 음색은 말할 것도 없고 무엇보다 가사가 정말 좋다"
+        ],
+        "negative_signals": [
+          "라이브 특성상 약간의 노이즈 존재"
+        ],
+        "best_use_case": "감성적인 보컬과 진정성 있는 연주를 원하는 청취자에게 추천된다. 특히 고음질 이어폰이나 헤드폰을 사용해 아이유의 따뜻한 음색을 느끼고 싶을 때 적합하다."
+      }
+    },
+    {
+      "videoId": "LnXbVk3VvSg",
+      "url": "https://www.youtube.com/watch?v=LnXbVk3VvSg",
+      "title": "[2017 아카라카] 아이유 - Full ver. [Full HD]",
+      "channelTitle": "Yonsei YVAC",
+      "duration": "PT25M16S",
+      "viewCount": 2308986,
+      "likeCount": 26995,
+      "commentCount": 1027,
+      "judgement": {
+        "valid_variation": true,
+        "variation_type": "live_performance",
+        "audio_quality_score": 7,
+        "performance_score": 9,
+        "uniqueness_score": 8,
+        "audiophile_interest_score": 7,
+        "comment_signal_score": 8,
+        "recommendation_score": 8,
+        "reason": "이 영상은 2017년 연세대학교 아카라카 행사에서 아이유가 공연한 밤편지 라이브 영상이다. 영상 설명에 따르면 밤편지는 21:00부터 시작되며, 총 25분 16초의 길이로 구성되어 있다. 촬영은 연세대학교 소속 YVAC에서 진행되었으며, 편집자 명단도 명시되어 있다. 영상의 화질은 Full HD로 제작되어 있으며, 촬영 장비의 품질이 높은 것으로 보인다. 영상의 댓글에서 밤편지 부분이 특히 인상 깊고 감동적인 것으로 보인다. 특히 조명 효과와 아이유의 미모, 그리고 그녀의 라이브 연주 능력이 강조된다. 아이유는 이 공연에서 혼자서도 매끄럽게 진행하며, 밤편지 곡에서 특히 감동적인 연주를 보여준다. 이 영상은 공식적인 라이브 공연이 아닌 대학 행사에서의 공연이기 때문에 live_performance로 분류된다.",
+        "why_this_version": "이 버전은 2017년 연세대학교 아카라카 행사에서 아이유가 공연한 밤편지 라이브 영상이다. 공식적인 라이브 공연이 아닌 대학 행사에서의 공연이기 때문에 live_performance로 분류된다. 아이유의 라이브 연주 능력과 감정 전달 능력이 뛰어나며, 특히 밤편지 곡에서 조명 효과와 그녀의 미모가 강조된다. 이 영상은 Full HD로 제작되어 있으며, 촬영 장비의 품질이 높은 것으로 보인다.",
+        "compared_to_original": "이 버전은 공식적인 스튜디오 버전과 비교하여 더 감동적이고 생생한 라이브 버전이다. 아이유의 라이브 연주 능력과 감정 전달 능력이 뛰어나며, 특히 밤편지 곡에서 조명 효과와 그녀의 미모가 강조된다. 이 영상은 공식적인 라이브 공연이 아닌 대학 행사에서의 공연이기 때문에 live_performance로 분류된다.",
+        "best_for": [
+          "감정 전달",
+          "보컬 중심 청취",
+          "라이브 분위기"
+        ],
+        "listener_match": [
+          "Warm Vocal",
+          "HD650",
+          "진공관"
+        ],
+        "positive_signals": [
+          "Full HD 화질로 제작됨",
+          "아이유의 라이브 연주 능력이 뛰어남",
+          "밤편지 곡에서 조명 효과와 미모가 강조됨",
+          "댓글에서 감동적이고 인상 깊은 연주가 언급됨",
+          "공식적인 라이브 공연이 아닌 대학 행사에서의 공연임"
+        ],
+        "negative_signals": [
+          "공식적인 스튜디오 버전과 비교하면 약간의 음질 차이가 있을 수 있음",
+          "대학 행사 특성상 공식적인 라이브 버전보다는 약간의 잡음이 있을 수 있음"
+        ],
+        "best_use_case": "이 영상은 아이유의 라이브 연주 능력과 감정 전달 능력을 경험하고 싶은 사람에게 추천된다. 특히 밤편지 곡에서 조명 효과와 그녀의 미모가 강조되기 때문에, 감동적인 라이브 분위기를 느끼고 싶은 사람에게 적합하다. Full HD 화질로 제작되어 있어 고음질 장비에서 감상하면 더욱 만족스러울 수 있다."
+      }
+    },
+    {
+      "videoId": "TzoUHJGCgs8",
+      "url": "https://www.youtube.com/watch?v=TzoUHJGCgs8",
+      "title": "170520 아카라카 직캠 아이유-밤편지(멀고 수전증)",
+      "channelTitle": "송솜이",
+      "duration": "PT4M5S",
+      "viewCount": 299270,
+      "likeCount": 3510,
+      "commentCount": 146,
+      "judgement": {
+        "valid_variation": true,
+        "variation_type": "live_performance",
+        "audio_quality_score": 6,
+        "performance_score": 8,
+        "uniqueness_score": 7,
+        "audiophile_interest_score": 5,
+        "comment_signal_score": 4,
+        "recommendation_score": 6,
+        "reason": "라이브 공연 영상이지만 음질은 일반 직캠 수준이며, 아이유의 감성적인 보컬과 무대 매너가 돋보이는 공연이다. 댓글 중 음질이나 음악적 특성에 대한 언급은 거의 없으며, 대부분 외모와 분위기에 대한 반응이다.",
+        "why_this_version": "아이유의 감성적인 보컬과 천상의 무대 매너가 돋보이는 라이브 버전이다.",
+        "compared_to_original": "원곡 대비 감성적인 표현이 더 강조된 라이브 버전으로 추정되며, 음악적 차이는 명확하지 않다.",
+        "best_for": [
+          "감정 전달",
+          "보컬 중심 청취"
+        ],
+        "listener_match": [
+          "감성 보컬",
+          "이어폰"
+        ],
+        "positive_signals": [
+          "아이유의 감성적인 보컬",
+          "천상의 무대 매너",
+          "공연 분위기"
+        ],
+        "negative_signals": [
+          "음질은 일반 직캠 수준",
+          "댓글 대부분 외모와 분위기에 대한 반응"
+        ],
+        "best_use_case": "아이유의 감성적인 보컬과 천상의 무대 매너를 경험하고 싶은 이들에게 추천된다."
+      }
+    },
+    {
+      "videoId": "QfqmdnHpJIE",
+      "url": "https://www.youtube.com/watch?v=QfqmdnHpJIE",
+      "title": "아이유의 생목 라이브 (밤편지)",
+      "channelTitle": "아이유Lifetime",
+      "duration": "PT27S",
+      "viewCount": 62329,
+      "likeCount": 701,
+      "commentCount": 6,
+      "judgement": {
+        "valid_variation": true,
+        "variation_type": "live_performance",
+        "audio_quality_score": 4,
+        "performance_score": 8,
+        "uniqueness_score": 6,
+        "audiophile_interest_score": 5,
+        "comment_signal_score": 6,
+        "recommendation_score": 5,
+        "reason": "해피투게더에서의 생방송 라이브로, 짧은 27초의 클립이지만 아이유의 감정이 풍부한 보컬 표현이 돋보인다. 공식 채널에서 업로드된 것으로 신뢰도가 높으며, 실제 공연 분위기를 느낄 수 있다. 그러나 짧은 길이와 저품질 음질로 인해 음향적 만족도는 제한적이다.",
+        "why_this_version": "공식 채널에서 업로드된 짧은 라이브 클립으로, 아이유의 감정이 풍부한 보컬 표현을 경험할 수 있다.",
+        "compared_to_original": "짧은 길이와 저품질 음질로 인해 원곡과의 비교는 제한적이지만, 라이브 공연의 즉흥적 감정을 느낄 수 있다.",
+        "best_for": [
+          "감정 전달",
+          "보컬 중심 청취"
+        ],
+        "listener_match": [
+          "Warm Vocal",
+          "이어폰"
+        ],
+        "positive_signals": [
+          "공식 채널 업로드",
+          "감정이 풍부한 보컬 표현",
+          "실제 공연 분위기 경험 가능"
+        ],
+        "negative_signals": [
+          "짧은 길이 (27초)",
+          "저품질 음질",
+          "공식 스튜디오 버전보다 정보량 부족"
+        ],
+        "best_use_case": "아이유의 라이브 보컬 실력을 간략히 경험하고 싶을 때, 또는 감정이 풍부한 보컬 표현을 청취하고 싶을 때 들으면 좋다."
+      }
+    },
+    {
+      "videoId": "BzYnNdJhZQw",
+      "url": "https://www.youtube.com/watch?v=BzYnNdJhZQw",
+      "title": "[MV] IU(아이유) _ Through the Night(밤편지)",
+      "channelTitle": "1theK (원더케이)",
+      "duration": "PT4M43S",
+      "viewCount": 116782401,
+      "likeCount": 859715,
+      "commentCount": 30939,
+      "judgement": {
+        "valid_variation": false,
+        "variation_type": "lyrics_video",
+        "audio_quality_score": 0,
+        "performance_score": 0,
+        "uniqueness_score": 0,
+        "audiophile_interest_score": 0,
+        "comment_signal_score": 0,
+        "recommendation_score": 0,
+        "reason": "이 영상은 음악적 변형이 아닌 공식 뮤직비디오로, 순수한 가사 영상에 해당합니다. 뮤직비디오의 시각적 요소가 주를 이루며 음악적 차이점이 없습니다.",
+        "why_this_version": "추천 대상이 아닙니다.",
+        "compared_to_original": "음악 variation이 아니므로 비교 대상이 아닙니다.",
+        "best_for": [],
+        "listener_match": [],
+        "positive_signals": [],
+        "negative_signals": [
+          "순수 가사 영상",
+          "음악적 변형 없음"
+        ],
+        "best_use_case": "TuneMyFi 추천 대상에서 제외"
+      }
+    },
+    {
+      "videoId": "EjMTw4xLcBI",
+      "url": "https://www.youtube.com/watch?v=EjMTw4xLcBI",
+      "title": "아이유(IU) - 밤편지 [가사/Lyrics]",
+      "channelTitle": "웅키",
+      "duration": "PT4M14S",
+      "viewCount": 1260180,
+      "likeCount": 8218,
+      "commentCount": 214,
+      "judgement": {
+        "valid_variation": false,
+        "variation_type": "lyrics_video",
+        "audio_quality_score": 0,
+        "performance_score": 0,
+        "uniqueness_score": 0,
+        "audiophile_interest_score": 0,
+        "comment_signal_score": 0,
+        "recommendation_score": 0,
+        "reason": "이 영상은 가사가 표시된 라이브 버전이지만, 음악적 변형이나 음질 향상, 독특한 연주나 성능이 명확히 언급되지 않았습니다. 주로 감정적 공감이나 개인적 추억을 공유하는 댓글들이며, 음질이나 음악적 특성에 대한 언급은 없습니다. 따라서 이 영상은 음향 애호가의 음악 탐색 서비스에 적합하지 않습니다.",
+        "why_this_version": "추천 대상이 아닙니다.",
+        "compared_to_original": "음악 variation이 아니므로 비교 대상이 아닙니다.",
+        "best_for": [],
+        "listener_match": [],
+        "positive_signals": [],
+        "negative_signals": [
+          "음질이나 음악적 변형에 대한 언급 없음",
+          "라이브 성능의 특별한 점이 설명되지 않음"
+        ],
+        "best_use_case": "TuneMyFi 추천 대상에서 제외"
+      }
+    }
+  ]
+}
