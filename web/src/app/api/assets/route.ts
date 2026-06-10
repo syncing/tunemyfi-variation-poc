@@ -3,16 +3,16 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { spawn } from "child_process";
 
-const ROOT = process.cwd();
+const WEB_ROOT = process.cwd();
 const PROJECT_ROOT = "/home/hycho/projects/tunemyfi-variation-poc";
-const VENV_ROOT = `${PROJECT_ROOT}/.venv`;
-const VENV_PYTHON = `${VENV_ROOT}/bin/python`;
-const VENV_BIN = `${VENV_ROOT}/bin`;
-const DATA_ROOT = path.join(ROOT, "data", "product-assets");
+const UV_BIN = "/home/hycho/.local/bin/uv";
+const DATA_ROOT = path.join(WEB_ROOT, "data", "product-assets");
 
 function slugify(text: string) {
   return (
-    text.toLowerCase().trim()
+    text
+      .toLowerCase()
+      .trim()
       .replace(/[^a-z0-9가-힣]+/g, "-")
       .replace(/-+/g, "-")
       .replace(/^-|-$/g, "") || "item"
@@ -29,6 +29,7 @@ async function readJsonSafe(filePath: string, fallback: any) {
 
 async function readProduct(productSlug: string) {
   const productPath = path.join(DATA_ROOT, productSlug, "product.json");
+
   const product = await readJsonSafe(productPath, {
     productSlug,
     productName: productSlug,
@@ -36,20 +37,28 @@ async function readProduct(productSlug: string) {
   });
 
   const resources = await Promise.all(
-    (product.resources ?? []).map(async (r: any) => {
+    (product.resources ?? []).map(async (resource: any) => {
       const manifestPath = path.join(
         DATA_ROOT,
         productSlug,
         "resources",
-        r.resourceId,
+        resource.resourceId,
         "manifest.json",
       );
+
       const manifest = await readJsonSafe(manifestPath, null);
-      return { ...r, manifest };
+
+      return {
+        ...resource,
+        manifest,
+      };
     }),
   );
 
-  return { ...product, resources };
+  return {
+    ...product,
+    resources,
+  };
 }
 
 function runImporter(input: {
@@ -64,13 +73,21 @@ function runImporter(input: {
 }) {
   return new Promise<any>((resolve, reject) => {
     const scriptArgs = [
-      "scripts/import_assets.py",
-      "--source-url", input.sourceUrl,
-      "--product-slug", input.productSlug,
-      "--product-name", input.productName,
-      "--resource-id", input.resourceId,
-      "--resource-name", input.resourceName,
-      "--rule", input.rule,
+      "run",
+      "python",
+      "web/scripts/import_assets.py",
+      "--source-url",
+      input.sourceUrl,
+      "--product-slug",
+      input.productSlug,
+      "--product-name",
+      input.productName,
+      "--resource-id",
+      input.resourceId,
+      "--resource-name",
+      input.resourceName,
+      "--rule",
+      input.rule,
     ];
 
     if (input.copyrightNote) {
@@ -81,33 +98,49 @@ function runImporter(input: {
       scriptArgs.push("--clean");
     }
 
-    const py = spawn(VENV_PYTHON, scriptArgs, {
-      cwd: ROOT,
+    const proc = spawn(UV_BIN, scriptArgs, {
+      cwd: PROJECT_ROOT,
       env: {
         ...process.env,
-        VIRTUAL_ENV: VENV_ROOT,
-        PATH: `${VENV_BIN}:${process.env.PATH ?? ""}`,
+        UV_PROJECT: PROJECT_ROOT,
       },
     });
 
     let stdout = "";
     let stderr = "";
 
-    py.stdout.on("data", (d) => stdout += d.toString());
-    py.stderr.on("data", (d) => stderr += d.toString());
+    proc.stdout.on("data", (data) => {
+      stdout += data.toString();
+    });
 
-    py.on("error", reject);
+    proc.stderr.on("data", (data) => {
+      stderr += data.toString();
+    });
 
-    py.on("close", (code) => {
+    proc.on("error", (err) => {
+      reject(err);
+    });
+
+    proc.on("close", (code) => {
       if (code !== 0) {
-        reject(new Error(stderr || stdout || `Importer failed: ${code}`));
+        reject(
+          new Error(
+            stderr ||
+              stdout ||
+              `Asset importer failed with exit code ${code}`,
+          ),
+        );
         return;
       }
 
       try {
         resolve(JSON.parse(stdout));
       } catch {
-        reject(new Error(`JSON parse failed\nSTDOUT:\n${stdout}\nSTDERR:\n${stderr}`));
+        reject(
+          new Error(
+            `Asset importer JSON parse failed.\n\nSTDOUT:\n${stdout}\n\nSTDERR:\n${stderr}`,
+          ),
+        );
       }
     });
   });
@@ -116,11 +149,12 @@ function runImporter(input: {
 export async function GET(req: NextRequest) {
   const productSlug = slugify(
     req.nextUrl.searchParams.get("productSlug") ??
-    req.nextUrl.searchParams.get("product") ??
-    "sony-wh-1000xm6",
+      req.nextUrl.searchParams.get("product") ??
+      "sony-wh-1000xm6",
   );
 
   const product = await readProduct(productSlug);
+
   return NextResponse.json(product);
 }
 
@@ -130,15 +164,20 @@ export async function POST(req: NextRequest) {
 
     const productName = String(body.productName ?? "Sony WH-1000XM6");
     const productSlug = slugify(String(body.productSlug ?? productName));
+
     const resourceName = String(body.resourceName ?? "Default Resource");
     const resourceId = slugify(String(body.resourceId ?? resourceName));
+
     const sourceUrl = String(body.sourceUrl ?? "");
     const rule = String(body.rule ?? "generic");
     const copyrightNote = String(body.copyrightNote ?? "");
     const clean = body.clean === undefined ? true : Boolean(body.clean);
 
     if (!sourceUrl) {
-      return NextResponse.json({ error: "sourceUrl이 없습니다." }, { status: 400 });
+      return NextResponse.json(
+        { error: "sourceUrl이 없습니다." },
+        { status: 400 },
+      );
     }
 
     const result = await runImporter({
@@ -155,7 +194,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(result);
   } catch (err: any) {
     return NextResponse.json(
-      { error: err.message ?? "Asset import 실패" },
+      {
+        error: err.message ?? "Asset import 실패",
+      },
       { status: 500 },
     );
   }

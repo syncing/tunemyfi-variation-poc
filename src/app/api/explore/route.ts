@@ -1,3 +1,5 @@
+import path from "path";
+import { mkdir, writeFile } from "fs/promises";
 import { NextRequest, NextResponse } from "next/server";
 
 type YoutubeCandidate = {
@@ -103,6 +105,9 @@ Schema:
   "best_use_case": "이 버전을 언제/왜 들으면 좋은지"
 }
 `;
+
+
+
 
 async function youtubeGet(url: string, params: Record<string, string>) {
   if (!YOUTUBE_API_KEY) {

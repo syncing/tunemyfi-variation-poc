@@ -11,9 +11,19 @@ def slug_safe(t):
 
 def norm(u): return u.replace("\\u002F", "/").replace("\\/", "/")
 
+def web_root() -> Path:
+    cwd = Path.cwd()
+
+    if (cwd / "web" / "scripts").exists():
+        return cwd / "web"
+
+    return cwd
+
+
 def load_rules(name):
-    p = Path.cwd() / "scripts" / "provider-rules" / f"{name}.json"
+    p = web_root() / "scripts" / "provider-rules" / f"{name}.json"
     return json.loads(p.read_text("utf-8"))
+
 
 def extract_urls(html, base):
     urls = set()
@@ -71,7 +81,7 @@ def main():
     resource_id = slug_safe(args.resource_id)
     rules = load_rules(args.rule)
 
-    root = Path.cwd()
+    root = web_root()
     public_dir = root / "public" / "product-assets" / product_slug / "resources" / resource_id
     data_product_dir = root / "data" / "product-assets" / product_slug
     data_resource_dir = data_product_dir / "resources" / resource_id

@@ -1,1 +1,14 @@
+# generated assets
+web/public/videos/
+web/data/video-work/
+
+# workflow runtime state
+web/data/workflow-state/
+
+# imported assets
+web/data/product-assets/
+
+# local env
 .env
+.env.local
+web/.env.local

@@ -1,3 +1,17 @@
+
+function slugify(text: string) {
+  return (
+    text
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9가-힣]+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "") || "query"
+  );
+}
+
+import { mkdir, writeFile } from "fs/promises";
+import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import { YoutubeTranscript } from "youtube-transcript";
 
@@ -638,6 +652,37 @@ export async function POST(req: NextRequest) {
     );
 
     const finalVerdict = await generateFinalVerdict(query, ranked);
+
+    const projectRoot = path.resolve(process.cwd(), "..");
+    const querySlug = slugify(query);
+
+    const rankedDir = path.join(projectRoot, "data", "ranked");
+    const verdictDir = path.join(projectRoot, "data", "verdicts");
+
+    await mkdir(rankedDir, { recursive: true });
+    await mkdir(verdictDir, { recursive: true });
+
+    const rankedPayload = {
+      query,
+      model: OLLAMA_MODEL,
+      candidateCount: candidates.length,
+      ranked,
+      finalVerdict,
+      createdAt: new Date().toISOString(),
+    };
+
+    await writeFile(
+      path.join(rankedDir, `${querySlug}.ranked.json`),
+      JSON.stringify(rankedPayload, null, 2),
+      "utf-8",
+    );
+
+    await writeFile(
+      path.join(verdictDir, `${querySlug}.verdict.json`),
+      JSON.stringify(finalVerdict, null, 2),
+      "utf-8",
+    );
+
 
     return NextResponse.json({
       mode: "tunemyfi-community-intelligence",

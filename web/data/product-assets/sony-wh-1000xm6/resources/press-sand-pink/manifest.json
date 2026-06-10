@@ -5,7 +5,7 @@
   "resourceName": "Press Images - Sand Pink",
   "sourcePageUrl": "https://www.sony.eu/presscentre/media/album/bba2b823-312b-4e09-a3b5-7313736ad69f",
   "rule": "press-inline-jpeg",
-  "copyrightNote": "Official press assets. Verify usage rights before publication.",
+  "copyrightNote": "",
   "assetCount": 32,
   "assets": [
     {
@@ -15,7 +15,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/028be997-5d84-4f84-9acc-0b92f1cb5b0b/-/inline/no/WH-1000XM6_SandPink_Fashion-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 816303,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:31Z"
     },
     {
       "id": "asset_02",
@@ -24,7 +24,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/1433c50b-dfbc-4621-81ba-f5e6244a9c07/-/inline/no/3_WH-1000XM5_front_SandPink-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 525399,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:31Z"
     },
     {
       "id": "asset_03",
@@ -33,7 +33,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/14fdeeb3-1d81-4a02-a634-3db80935ce15/-/inline/no/WH-1000XM6_SandPink_Social_AmbientMode_Original-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 610652,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:31Z"
     },
     {
       "id": "asset_04",
@@ -42,7 +42,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/1d525e6a-5e76-4149-8b77-91d792f43c49/-/inline/no/WH-1000XM6_SandPink_Design2-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 960625,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:32Z"
     },
     {
       "id": "asset_05",
@@ -51,7 +51,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/31dfdf83-186c-4437-bd71-afc94cef2f21/-/inline/no/WH-1000XM6_SandPink_Social_CallQuality_Original-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 918324,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:32Z"
     },
     {
       "id": "asset_06",
@@ -60,7 +60,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/39c5fd79-c8e4-47f5-b2ce-bcc2e1c715d5/-/inline/no/WH-1000XM6_SandPink_Social_Foldable2_Original-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 1482496,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:32Z"
     },
     {
       "id": "asset_07",
@@ -69,7 +69,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/407a5fe1-83ce-45aa-b048-5dfd6ae633c3/-/inline/no/WH-1000XM6_SandPink_Social_Fashion_Male2_Original-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 937583,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:32Z"
     },
     {
       "id": "asset_08",
@@ -78,7 +78,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/569fa620-da53-4345-98fa-a6a42775c0be/-/inline/no/WH-1000XM6_SandPink_Design1-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 1297373,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:32Z"
     },
     {
       "id": "asset_09",
@@ -87,7 +87,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/5f332939-4448-43de-8fe1-975781c5615f/-/inline/no/1_WH-1000XM6_standard_SandPink-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 409146,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:32Z"
     },
     {
       "id": "asset_10",
@@ -96,7 +96,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/65615ec4-b541-4ee4-80ba-76d04bb541f9/-/inline/no/WH-1000XM6_SandPink_InSituation2-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 591547,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:32Z"
     },
     {
       "id": "asset_11",
@@ -105,7 +105,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/6a89c4bf-38e7-48cc-bf16-6b3aa02d4bbc/-/inline/no/WH-1000XM6_SandPink_SoundQuality-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 543407,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:32Z"
     },
     {
       "id": "asset_12",
@@ -114,7 +114,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/6bd1e247-623f-4a67-b758-3a28390f7ae2/-/inline/no/WH-1000XM6_SandPink_NoiseCancelling-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 590512,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:32Z"
     },
     {
       "id": "asset_13",
@@ -123,7 +123,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/6e9cdb64-d5ca-4cdf-a068-855104e4387b/-/inline/no/2_WH-1000XM5_side_SandPink-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 410521,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:32Z"
     },
     {
       "id": "asset_14",
@@ -132,7 +132,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/6f3ffa52-7007-42ba-b687-62b54ed02eab/-/inline/no/WH-1000XM6_keyvisual_sandpink-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 421415,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:32Z"
     },
     {
       "id": "asset_15",
@@ -141,7 +141,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/73b07d48-5452-413a-87be-2f0ebf6221ba/-/inline/no/WH-1000XM6_SandPink_Social_Design1_Original-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 899571,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:32Z"
     },
     {
       "id": "asset_16",
@@ -150,7 +150,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/78aae6d0-3f92-4416-93dd-cd060597e7f3/-/inline/no/7_WH-1000XM5_foldable2_w_case_SandPink-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 990544,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:33Z"
     },
     {
       "id": "asset_17",
@@ -159,7 +159,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/835c3a30-5f25-408f-8430-6f54180915cb/-/inline/no/4_WH-1000XM5_swivel_SandPink-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 539390,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:33Z"
     },
     {
       "id": "asset_18",
@@ -168,7 +168,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/85446068-daa1-4acb-b618-f82c2c510455/-/inline/no/WH-1000XM6_SandPink_Social_Swivel_Original-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 526848,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:33Z"
     },
     {
       "id": "asset_19",
@@ -177,7 +177,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/8e3802f8-8d76-48bb-852f-c61ac63622f6/-/inline/no/WH-1000XM6_SandPink_Social_Portable1_Original-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 361241,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:33Z"
     },
     {
       "id": "asset_20",
@@ -186,7 +186,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/93b129c2-46b6-4966-87e7-6d21b5448375/-/inline/no/5_WH-1000XM5_foldable1_SandPink-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 491750,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:33Z"
     },
     {
       "id": "asset_21",
@@ -195,7 +195,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/9818515d-d741-464c-9f9c-daa86a8ca673/-/inline/no/WH-1000XM6_SandPink_Social_Fashion_Male1_Original-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 854839,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:33Z"
     },
     {
       "id": "asset_22",
@@ -204,7 +204,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/a5805426-0b7d-4f8a-9ad9-3944bc7d11d4/-/inline/no/WH-1000XM6_SandPink_ColorVariation-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 567828,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:33Z"
     },
     {
       "id": "asset_23",
@@ -213,7 +213,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/ae378832-28f3-4916-b40f-965de62dda8f/-/inline/no/6_WH-1000XM5_foldable2_SandPink-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 657045,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:33Z"
     },
     {
       "id": "asset_24",
@@ -222,7 +222,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/b6d47edf-f424-421e-a39e-2aa81e6ff63d/-/inline/no/WH-1000XM6_SandPink_Social_Fashion_Female1_Original-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 916430,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:33Z"
     },
     {
       "id": "asset_25",
@@ -231,7 +231,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/bb5d88cb-4624-45f9-8459-1a9e21659b80/-/inline/no/WH-1000XM6_SandPink_Product_HeroImage_Ratio-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 457101,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:33Z"
     },
     {
       "id": "asset_26",
@@ -240,7 +240,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/bd230b58-73f3-4562-b4ac-b40173d4261d/-/inline/no/WH-1000XM6_SandPink_Social_Portable2_Original-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 805524,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:33Z"
     },
     {
       "id": "asset_27",
@@ -249,7 +249,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/c4664b56-eaf6-41e4-bcf1-644751f6234b/-/inline/no/WH-1000XM6_SandPink_InSituation1_NoCrop-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 676243,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:33Z"
     },
     {
       "id": "asset_28",
@@ -258,7 +258,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/cbbb7363-79ab-445c-8a7b-791be75a9f0c/-/inline/no/WH-1000XM6_SandPink_Social_Foldable1_Original-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 891486,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:33Z"
     },
     {
       "id": "asset_29",
@@ -267,7 +267,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/d376086e-e71a-45e3-a083-734597300f07/-/inline/no/WH-1000XM6_SandPink_Social_Fashion_Female2_Original-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 886037,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:33Z"
     },
     {
       "id": "asset_30",
@@ -276,7 +276,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/d760fdf6-8ba5-4495-86f0-ebe318d78644/-/inline/no/WH-1000XM6_SandPink_Social_NosieCancelling_Original-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 773730,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:33Z"
     },
     {
       "id": "asset_31",
@@ -285,7 +285,7 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/df314c71-11a1-435a-aaf0-2f3bf3c26922/-/inline/no/WH-1000XM6_SandPink_Lifestyle_HeroImage-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 582604,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:33Z"
     },
     {
       "id": "asset_32",
@@ -294,8 +294,8 @@
       "sourceUrl": "https://cdn.uc.assets.prezly.com/e654df87-fb4e-4afa-bdea-df02ccd2a736/-/inline/no/WH-1000XM6_SandPink_Social_Design2_Original-Large.jpg",
       "contentType": "image/jpeg",
       "sizeBytes": 918402,
-      "createdAt": "2026-06-09T07:47:20Z"
+      "createdAt": "2026-06-10T00:07:33Z"
     }
   ],
-  "updatedAt": "2026-06-09T07:47:20Z"
+  "updatedAt": "2026-06-10T00:07:33Z"
 }
