@@ -1,0 +1,57 @@
+{
+  "ok": true,
+  "query": "Sony WH-1000XM6 review",
+  "output": "/home/hycho/projects/tunemyfi-variation-poc/data/verdicts/sony-wh-1000xm6-review.verdict.json",
+  "verdict": {
+    "query": "Sony WH-1000XM6 review",
+    "communityScore": 88,
+    "summary": "The Sony WH-1000XM6 is highly regarded for its exceptional noise cancellation and improved sound quality, making it a top choice for commuting and travel. However, the high price and some design compromises may deter budget-conscious buyers.",
+    "recommendedFor": [
+      "Commuters and travelers",
+      "Users prioritizing noise cancellation",
+      "Those seeking high-quality audio"
+    ],
+    "notRecommendedFor": [
+      "Budget-conscious buyers",
+      "Casual users not needing premium features"
+    ],
+    "topPicks": [
+      {
+        "title": "Sony WH-1000XM6 Review: Back on the Throne!",
+        "url": "https://www.youtube.com/watch?v=XbXXKhfvSF0",
+        "why": "Comprehensive review with high engagement and detailed analysis."
+      },
+      {
+        "title": "Sony’s best headphones get an upgrade: Sony WH-1000XM6 hands-on",
+        "url": "https://www.youtube.com/watch?v=Ogz4Naoo1h8",
+        "why": "Reliable source providing hands-on insights and comparisons."
+      },
+      {
+        "title": "세계에서 가장 많이 팔리는 노캔 헤드폰 후속작? 소니 1000XM6 한달 사용기!",
+        "url": "https://www.youtube.com/watch?v=GFd0ot2D7fE",
+        "why": "Korean perspective offering a detailed usage experience."
+      }
+    ],
+    "repeatedPros": [
+      "Enhanced noise cancellation",
+      "Superb sound quality",
+      "Long battery life (30 hours)",
+      "Improved foldable design"
+    ],
+    "repeatedCons": [
+      "High price point",
+      "Discomfort during extended wear",
+      "Touch controls can be finicky",
+      "No USB-C audio support"
+    ],
+    "upgradeAdvice": "Upgrade if you value the improved noise cancellation and sound quality, especially from older models like XM4.",
+    "newBuyerAdvice": "Consider your budget and specific needs for noise cancellation and audio fidelity before purchasing.",
+    "contentAngles": [
+      "Design and build quality",
+      "Feature set and innovations",
+      "Price to performance ratio",
+      "Comparison with previous models"
+    ],
+    "narrationBrief": "The Sony WH-1000XM6 excels with enhanced noise cancellation and sound quality, featuring a sleek foldable design. While pricey, it's ideal for travelers and commuters seeking top-tier audio in noisy environments."
+  }
+}

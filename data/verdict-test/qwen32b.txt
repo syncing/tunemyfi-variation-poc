@@ -1,0 +1,61 @@
+{
+  "ok": true,
+  "query": "Sony WH-1000XM6 review",
+  "output": "/home/hycho/projects/tunemyfi-variation-poc/data/verdicts/sony-wh-1000xm6-review.verdict.json",
+  "verdict": {
+    "query": "Sony WH-1000XM6 review",
+    "communityScore": 4.5,
+    "summary": "Sony WH-1000XM6는 노이즈 캔슬링, 사운드 품질, 디자인 개선, 30시간 배터리 수명 등 핵심 기능에서 높은 평가를 받지만, 가격, 착용 편안함, 터치 컨트롤 등의 단점도 지적받는 프리미엄 무선 헤드폰입니다.",
+    "recommendedFor": [
+      "항공/철도 여행",
+      "노이즈가 많은 도시 환경",
+      "고음질 오디오를 추구하는 사용자",
+      "접이식 디자인을 선호하는 사용자"
+    ],
+    "notRecommendedFor": [
+      "저예산 사용자",
+      "USB-C 무손실 오디오를 필요로 하는 사용자",
+      "장시간 착용을 선호하는 사용자"
+    ],
+    "topPicks": [
+      {
+        "title": "Sony WH-1000XM6 Review: Back on the Throne!",
+        "url": "https://www.youtube.com/watch?v=XbXXKhfvSF0",
+        "why": "470만 뷰, ANC/사운드/디자인 개선에 대한 전문가적 분석"
+      },
+      {
+        "title": "Sony WH-1000XM6 Review - A BRUTALLY HONEST Take...",
+        "url": "https://www.youtube.com/watch?v=G6p8xIRgTLg",
+        "why": "24만 뷰, 사운드 품질과 배터리 수명에 대한 객관적 평가"
+      },
+      {
+        "title": "Sony’s best headphones get an upgrade: Sony WH-1000XM6 hands-on",
+        "url": "https://www.youtube.com/watch?v=Ogz4Naoo1h8",
+        "why": "16만 뷰, 디자인 및 착용감에 대한 심층적 분석"
+      }
+    ],
+    "repeatedPros": [
+      "탁월한 노이즈 캔슬링",
+      "개선된 사운드 품질",
+      "30시간 배터리 수명",
+      "접이식 디자인 복귀",
+      "다기기 연결 기능"
+    ],
+    "repeatedCons": [
+      "높은 가격",
+      "장시간 착용 불편",
+      "터치 패드 조작 문제",
+      "USB-C 오디오 미지원",
+      "3.5mm 잭 제거"
+    ],
+    "upgradeAdvice": "XM4/XM5 사용자라면 ANC 성능 향상과 디자인 개선을 위해 업그레이드할 가치가 있으나, 이전 모델 대비 혁신적 개선은 아님.",
+    "newBuyerAdvice": "노이즈 캔슬링과 고음질을 최우선으로 고려하는 여행자/출퇴근자에게 적합하지만, 가격 대비 가치를 중요시하는 사용자는 대안 모델 검토 권장.",
+    "contentAngles": [
+      "ANC 성능 비교 분석",
+      "디자인 진화 추적",
+      "가격 대비 경쟁 모델 대결",
+      "장기 사용 후 평가"
+    ],
+    "narrationBrief": "소니 WH-1000XM6는 세계 최고 수준의 노이즈 캔슬링과 30시간 배터리, 접이식 디자인으로 여행자에게 최적화된 헤드폰입니다. 하지만 높은 가격과 터치 컨트롤의 불편함은 주요 단점입니다. 항공/철도 여행이나 도시 소음 환경에서 최고의 성능을 발휘합니다."
+  }
+}

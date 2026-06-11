@@ -42,6 +42,11 @@ const SEARCH_URL = "https://www.googleapis.com/youtube/v3/search";
 const VIDEOS_URL = "https://www.googleapis.com/youtube/v3/videos";
 const COMMENTS_URL = "https://www.googleapis.com/youtube/v3/commentThreads";
 
+const JUDGE_CONCURRENCY = Number(
+  process.env.JUDGE_CONCURRENCY ?? "3",
+);
+
+
 const SYSTEM_PROMPT = `
 You are TuneMyFi Variation Judge.
 
@@ -107,6 +112,30 @@ Schema:
 `;
 
 
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex++;
+      results[currentIndex] = await mapper(items[currentIndex], currentIndex);
+    }
+  }
+
+  await Promise.all(
+    Array.from(
+      { length: Math.min(concurrency, items.length) },
+      () => worker(),
+    ),
+  );
+
+  return results;
+}
 
 
 async function youtubeGet(url: string, params: Record<string, string>) {
@@ -316,21 +345,24 @@ export async function POST(req: NextRequest) {
 
     const candidates = await collectCandidates(query);
 
-    const ranked = [];
 
-    for (const candidate of candidates) {
-      const judgement = await judgeCandidate(query, candidate);
+    const ranked = await mapWithConcurrency(
+      candidates,
+      JUDGE_CONCURRENCY,
+      async (candidate) => {
+        const judgement = await judgeCandidate(query, candidate);
 
-      ranked.push({
-        ...candidate,
-        judgement,
-      });
-    }
+        return {
+          ...candidate,
+          judgement,
+        };
+      },
+    );
 
     ranked.sort(
       (a, b) =>
-        (b.judgement.recommendation_score ?? 0) -
-        (a.judgement.recommendation_score ?? 0),
+        b.judgement.recommendation_score -
+        a.judgement.recommendation_score,
     );
 
     return NextResponse.json({

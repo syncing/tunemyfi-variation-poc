@@ -133,17 +133,65 @@ export async function PUT(req: NextRequest) {
     const action = String(body.action ?? "");
     const state = await readState();
 
+    if (action === "clear-workflow") {
+      const next = {
+        productName: "",
+        productSlug: "",
+        query: "",
+        querySlug: "",
+        resourceIds: "",
+        model:
+          process.env.OLLAMA_NARRATION_MODEL ??
+          process.env.OLLAMA_MODEL ??
+          "qwen3:32b",
+        targetSeconds: 120,
+        imageLimit: 16,
+        rankedFile: "",
+        verdictFile: "",
+        videoPath: "",
+        videoResult: null,
+        assetResources: [],
+        steps: {
+          product: "pending",
+          analysis: "pending",
+          assets: "pending",
+          video: "pending",
+        },
+        updatedAt: new Date().toISOString(),
+      };
+
+      await saveState(next);
+      return NextResponse.json(next);
+    }
+
     if (action === "save-product") {
-      const query = String(body.query ?? state.query);
+      const productName = String(body.productName ?? "");
+      const productSlug = slugify(String(body.productSlug ?? productName));
+      const query = String(body.query ?? "");
       const querySlug = slugify(query);
 
       const next = {
         ...state,
         ...body,
+
+        productName,
+        productSlug,
         query,
         querySlug,
-        productSlug: slugify(String(body.productSlug ?? state.productSlug)),
-        steps: { ...state.steps, product: "done" },
+        resourceIds: productSlug,
+
+        rankedFile: "",
+        verdictFile: "",
+        videoPath: "",
+        videoResult: null,
+        assetResources: [],
+
+        steps: {
+          product: "done",
+          analysis: "pending",
+          assets: "pending",
+          video: "pending",
+        },
       };
 
       await saveState(next);
