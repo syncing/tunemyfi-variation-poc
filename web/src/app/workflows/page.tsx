@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 
-function assetSrc(publicPath: string) {
-  return `/api/asset-file?path=${encodeURIComponent(publicPath)}`;
-}
-
 function videoSrc(publicPath: string) {
   return `/api/video-file?path=${encodeURIComponent(publicPath)}`;
+}
+
+function assetSrc(publicPath: string) {
+  return `/api/asset-file?path=${encodeURIComponent(publicPath)}`;
 }
 
 function slugify(text: string) {
@@ -52,31 +52,31 @@ export default function WorkflowPage() {
   }
 
   async function clearWorkflow() {
-      setLoadingAction("clear-workflow");
-      setMessage("Workflow 초기화 중...");
+    setLoadingAction("clear-workflow");
+    setMessage("Workflow 초기화 중...");
 
-      try {
-        const res = await fetch("/api/workflow-state", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "clear-workflow" }),
-        });
+    try {
+      const res = await fetch("/api/workflow-state", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "clear-workflow" }),
+      });
 
-        const data = await res.json();
+      const data = await res.json();
 
-        if (!res.ok) {
-          throw new Error(data.error ?? "초기화 실패");
-        }
-
-        setState(data);
-        setAssetData(null);
-        setMessage("Workflow 초기화 완료");
-      } catch (e: any) {
-        setMessage(e.message ?? "오류 발생");
-      } finally {
-        setLoadingAction("");
+      if (!res.ok) {
+        throw new Error(data.error ?? "초기화 실패");
       }
+
+      setState(data);
+      setAssetData(null);
+      setMessage("Workflow 초기화 완료");
+    } catch (e: any) {
+      setMessage(e.message ?? "오류 발생");
+    } finally {
+      setLoadingAction("");
     }
+  }
 
   async function loadWorkflowAssets() {
     if (!state?.productSlug) return;
@@ -105,17 +105,17 @@ export default function WorkflowPage() {
 
   function toggleAsset(publicPath: string) {
     const selected = new Set<string>(
-    (assetData?.selectedPublicPaths ?? []) as string[],
+      (assetData?.selectedPublicPaths ?? []) as string[],
     );
 
     if (selected.has(publicPath)) {
-    selected.delete(publicPath);
+      selected.delete(publicPath);
     } else {
-    selected.add(publicPath);
+      selected.add(publicPath);
     }
 
     saveSelectedAssets(Array.from(selected));
-  }       
+  }
 
   async function runAction(action: string, label: string) {
     setLoadingAction(action);
@@ -157,7 +157,10 @@ export default function WorkflowPage() {
     );
   }
 
-  const busy = Boolean(loadingAction);
+  const isAnalyzing = loadingAction === "analyze-reviews";
+  const isGeneratingVideo = loadingAction === "generate-video";
+  const isClearing = loadingAction === "clear-workflow";
+  const blockCriticalActions = isGeneratingVideo || isClearing;
 
   return (
     <main className="min-h-screen bg-neutral-950 px-5 py-8 text-white">
@@ -167,10 +170,11 @@ export default function WorkflowPage() {
         </div>
 
         <h1 className="text-3xl font-bold">Review Video Workflow</h1>
+
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             onClick={clearWorkflow}
-            disabled={busy}
+            disabled={Boolean(loadingAction)}
             className="rounded-xl border border-red-800 px-4 py-2 text-sm text-red-300 disabled:opacity-50"
           >
             Clear Workflow
@@ -196,13 +200,13 @@ export default function WorkflowPage() {
                 <input
                   value={state.productName ?? ""}
                   onChange={(e) => {
-                      const productName = e.target.value;
-                      const productSlug = slugify(productName);
+                    const productName = e.target.value;
+                    const productSlug = slugify(productName);
 
-                      updateField("productName", productName);
-                      updateField("productSlug", productSlug);
-                      updateField("query", productName ? `${productName} review` : "");
-                      updateField("resourceIds", productSlug);
+                    updateField("productName", productName);
+                    updateField("productSlug", productSlug);
+                    updateField("query", productName ? `${productName} review` : "");
+                    updateField("resourceIds", productSlug);
                   }}
                   className="rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3"
                 />
@@ -229,7 +233,7 @@ export default function WorkflowPage() {
 
             <button
               onClick={() => runAction("save-product", "Product 저장")}
-              disabled={busy}
+              disabled={isAnalyzing || blockCriticalActions}
               className="mt-4 rounded-xl bg-white px-5 py-3 text-sm font-bold text-black disabled:opacity-50"
             >
               Save Product
@@ -248,10 +252,10 @@ export default function WorkflowPage() {
 
             <button
               onClick={() => runAction("analyze-reviews", "Review Analysis")}
-              disabled={busy}
+              disabled={isAnalyzing || blockCriticalActions}
               className="mt-4 rounded-xl bg-white px-5 py-3 text-sm font-bold text-black disabled:opacity-50"
             >
-              {loadingAction === "analyze-reviews" ? "Analyzing..." : "Analyze Reviews"}
+              {isAnalyzing ? "Analyzing..." : "Analyze Reviews"}
             </button>
 
             <div className="mt-4 grid gap-2 text-xs text-neutral-400">
@@ -285,7 +289,7 @@ export default function WorkflowPage() {
             <div className="mt-4 flex flex-wrap gap-2">
               <button
                 onClick={() => runAction("check-assets", "Asset 확인")}
-                disabled={busy}
+                disabled={isGeneratingVideo || isClearing}
                 className="rounded-xl border border-neutral-700 px-5 py-3 text-sm text-neutral-300 disabled:opacity-50"
               >
                 Check Assets
@@ -293,17 +297,23 @@ export default function WorkflowPage() {
 
               <button
                 onClick={loadWorkflowAssets}
-                disabled={busy}
+                disabled={isGeneratingVideo || isClearing}
                 className="rounded-xl border border-neutral-700 px-5 py-3 text-sm text-neutral-300 disabled:opacity-50"
               >
                 Load Assets
               </button>
-            <a
-              href={`/assets?productSlug=${encodeURIComponent(state.productSlug ?? "")}&productName=${encodeURIComponent(state.productName ?? "")}`}
-              className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-black"
-            >
-              Open Asset Manager
-            </a>
+              
+              <a
+                href={`/assets?productSlug=${encodeURIComponent(
+                  state.productSlug ?? "",
+                )}&productName=${encodeURIComponent(state.productName ?? "")}`}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-black"
+              >
+                Open Asset Manager
+              </a>
+
             </div>
 
             <div className="mt-4 grid gap-2 text-sm">
@@ -446,12 +456,10 @@ export default function WorkflowPage() {
 
             <button
               onClick={() => runAction("generate-video", "Dubbed Review Video 생성")}
-              disabled={busy}
+              disabled={isAnalyzing || blockCriticalActions}
               className="mt-4 rounded-xl bg-white px-5 py-3 text-sm font-bold text-black disabled:opacity-50"
             >
-              {loadingAction === "generate-video"
-                ? "Generating..."
-                : "Generate Dubbed Review Video"}
+              {isGeneratingVideo ? "Generating..." : "Generate Dubbed Review Video"}
             </button>
           </section>
 

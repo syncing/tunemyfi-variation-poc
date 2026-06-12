@@ -285,12 +285,14 @@ function AssetsPageInner() {
               Reload
             </button>
 
-            <a
-              href="/workflows"
+            <button
+              type="button"
+              onClick={() => window.close()}
               className="rounded-xl border border-neutral-700 px-5 py-3 text-sm text-neutral-300"
             >
-              Back to Workflow
-            </a>
+              Close Asset Manager
+            </button>
+
           </div>
 
           {message && <div className="text-sm text-neutral-300">{message}</div>}

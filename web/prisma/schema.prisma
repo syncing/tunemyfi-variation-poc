@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  query       String?
+  status      String   @default("draft")
+  rankedFile  String?
+  verdictFile String?
+  videoPath   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  assets        AssetResource[]
+  selectedAssets SelectedAsset[]
+
+  @@index([slug])
+}
+
+model AssetResource {
+  id           String   @id @default(cuid())
+  productId    String
+  resourceId   String
+  resourceName String
+  sourceUrl    String?
+  rule         String?
+  assetCount   Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@unique([productId, resourceId])
+}
+
+model SelectedAsset {
+  id         String   @id @default(cuid())
+  productId  String
+  publicPath String
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@unique([productId, publicPath])
+}

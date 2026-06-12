@@ -2,49 +2,66 @@ import { NextRequest, NextResponse } from "next/server";
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { spawn } from "child_process";
+import { prisma } from "@/lib/prisma";
 
 const WEB_ROOT = process.cwd();
-const PROJECT_ROOT = "/home/hycho/projects/tunemyfi-variation-poc";
-const UV_BIN = "/home/hycho/.local/bin/uv";
+const PROJECT_ROOT =
+  process.env.PROJECT_ROOT ?? "/home/hycho/projects/tunemyfi-variation-poc";
+const UV_BIN = process.env.UV_BIN ?? "/home/hycho/.local/bin/uv";
+
 const STATE_DIR = path.join(WEB_ROOT, "data", "workflow-state");
 const STATE_FILE = path.join(STATE_DIR, "current.json");
 
 function slugify(text: string) {
   return (
-    text.toLowerCase().trim()
+    text
+      .toLowerCase()
+      .trim()
       .replace(/[^a-z0-9가-힣]+/g, "-")
       .replace(/-+/g, "-")
       .replace(/^-|-$/g, "") || "item"
   );
 }
 
+function defaultState() {
+  return {
+    productName: "",
+    productSlug: "",
+    query: "",
+    querySlug: "",
+    resourceIds: "",
+    model:
+      process.env.OLLAMA_NARRATION_MODEL ??
+      process.env.OLLAMA_MODEL ??
+      "qwen3:32b",
+    targetSeconds: 120,
+    imageLimit: 16,
+
+    rankedFile: "",
+    verdictFile: "",
+    videoPath: "",
+    videoResult: null,
+    assetResources: [],
+
+    steps: {
+      product: "pending",
+      analysis: "pending",
+      assets: "pending",
+      video: "pending",
+    },
+
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 async function readState() {
   try {
-    return JSON.parse(await readFile(STATE_FILE, "utf-8"));
+    return {
+      ...defaultState(),
+      ...JSON.parse(await readFile(STATE_FILE, "utf-8")),
+    };
   } catch {
-        return {
-          productName: "",
-          productSlug: "",
-          query: "",
-          querySlug: "",
-          resourceIds: "",
-          model: process.env.OLLAMA_MODEL ?? "qwen3:32b",
-          targetSeconds: 120,
-          imageLimit: 16,
-
-          rankedFile: "",
-          verdictFile: "",
-          videoPath: "",
-
-          steps: {
-            product: "pending",
-            analysis: "pending",
-            assets: "pending",
-            video: "pending",
-          },
-
-          updatedAt: new Date().toISOString(),
-        };
+    return defaultState();
   }
 }
 
@@ -55,6 +72,80 @@ async function saveState(state: any) {
     JSON.stringify({ ...state, updatedAt: new Date().toISOString() }, null, 2),
     "utf-8",
   );
+}
+
+function productStatusFromState(state: any) {
+  if (state.steps?.video === "done") return "video_done";
+  if (state.steps?.analysis === "done") return "analyzed";
+  if (state.steps?.assets === "done") return "assets_done";
+  if (state.steps?.product === "done") return "draft";
+  return "draft";
+}
+
+async function upsertProductToDb(state: any) {
+  if (!state.productSlug || !state.productName) return;
+
+  await prisma.product.upsert({
+    where: { slug: state.productSlug },
+    create: {
+      slug: state.productSlug,
+      name: state.productName,
+      query: state.query || null,
+      status: productStatusFromState(state),
+      rankedFile: state.rankedFile || null,
+      verdictFile: state.verdictFile || null,
+      videoPath: state.videoPath || null,
+    },
+    update: {
+      name: state.productName,
+      query: state.query || null,
+      status: productStatusFromState(state),
+      rankedFile: state.rankedFile || null,
+      verdictFile: state.verdictFile || null,
+      videoPath: state.videoPath || null,
+    },
+  });
+}
+
+async function syncAssetResourcesToDb(state: any) {
+  if (!state.productSlug || !state.productName) return;
+
+  const product = await prisma.product.findUnique({
+    where: { slug: state.productSlug },
+  });
+
+  if (!product) return;
+
+  const resources = Array.isArray(state.assetResources)
+    ? state.assetResources
+    : [];
+
+  for (const r of resources) {
+    if (!r.resourceId) continue;
+
+    await prisma.assetResource.upsert({
+      where: {
+        productId_resourceId: {
+          productId: product.id,
+          resourceId: r.resourceId,
+        },
+      },
+      create: {
+        productId: product.id,
+        resourceId: r.resourceId,
+        resourceName: r.resourceName ?? r.resourceId,
+        sourceUrl: r.sourceUrl ?? null,
+        rule: r.rule ?? null,
+        assetCount: Number(r.assetCount ?? 0),
+      },
+      update: {
+        resourceName: r.resourceName ?? r.resourceId,
+        sourceUrl: r.sourceUrl ?? null,
+        rule: r.rule ?? null,
+        assetCount: Number(r.assetCount ?? 0),
+      },
+    });
+  }
 }
 
 async function callExplore(query: string) {
@@ -85,8 +176,14 @@ function runPython(args: string[]) {
     let stdout = "";
     let stderr = "";
 
-    proc.stdout.on("data", (d) => (stdout += d.toString()));
-    proc.stderr.on("data", (d) => (stderr += d.toString()));
+    proc.stdout.on("data", (d) => {
+      stdout += d.toString();
+    });
+
+    proc.stderr.on("data", (d) => {
+      stderr += d.toString();
+    });
+
     proc.on("error", reject);
 
     proc.on("close", (code) => {
@@ -98,7 +195,9 @@ function runPython(args: string[]) {
       try {
         resolve(JSON.parse(stdout));
       } catch {
-        reject(new Error(`JSON parse failed\nSTDOUT:\n${stdout}\nSTDERR:\n${stderr}`));
+        reject(
+          new Error(`JSON parse failed\nSTDOUT:\n${stdout}\nSTDERR:\n${stderr}`),
+        );
       }
     });
   });
@@ -112,18 +211,23 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const state = await readState();
 
-  const query = String(body.query ?? state.query);
-  const querySlug = slugify(query);
+  const productName = String(body.productName ?? state.productName ?? "");
+  const productSlug = slugify(String(body.productSlug ?? productName));
+  const query = String(body.query ?? state.query ?? "");
+  const querySlug = query ? slugify(query) : "";
 
   const next = {
     ...state,
     ...body,
-    productSlug: slugify(String(body.productSlug ?? state.productSlug)),
+    productName,
+    productSlug,
     query,
     querySlug,
   };
 
   await saveState(next);
+  await upsertProductToDb(next);
+
   return NextResponse.json(next);
 }
 
@@ -134,32 +238,7 @@ export async function PUT(req: NextRequest) {
     const state = await readState();
 
     if (action === "clear-workflow") {
-      const next = {
-        productName: "",
-        productSlug: "",
-        query: "",
-        querySlug: "",
-        resourceIds: "",
-        model:
-          process.env.OLLAMA_NARRATION_MODEL ??
-          process.env.OLLAMA_MODEL ??
-          "qwen3:32b",
-        targetSeconds: 120,
-        imageLimit: 16,
-        rankedFile: "",
-        verdictFile: "",
-        videoPath: "",
-        videoResult: null,
-        assetResources: [],
-        steps: {
-          product: "pending",
-          analysis: "pending",
-          assets: "pending",
-          video: "pending",
-        },
-        updatedAt: new Date().toISOString(),
-      };
-
+      const next = defaultState();
       await saveState(next);
       return NextResponse.json(next);
     }
@@ -168,7 +247,8 @@ export async function PUT(req: NextRequest) {
       const productName = String(body.productName ?? "");
       const productSlug = slugify(String(body.productSlug ?? productName));
       const query = String(body.query ?? "");
-      const querySlug = slugify(query);
+      const querySlug = query ? slugify(query) : "";
+      const resourceIds = productSlug;
 
       const next = {
         ...state,
@@ -178,7 +258,7 @@ export async function PUT(req: NextRequest) {
         productSlug,
         query,
         querySlug,
-        resourceIds: productSlug,
+        resourceIds,
 
         rankedFile: "",
         verdictFile: "",
@@ -195,11 +275,15 @@ export async function PUT(req: NextRequest) {
       };
 
       await saveState(next);
+      await upsertProductToDb(next);
+
       return NextResponse.json(next);
     }
 
     if (action === "analyze-reviews") {
-      const query = String(body.query ?? state.query);
+      const productName = String(body.productName ?? state.productName ?? "");
+      const productSlug = slugify(String(body.productSlug ?? productName));
+      const query = String(body.query ?? state.query ?? "");
       const querySlug = slugify(query);
 
       await callExplore(query);
@@ -210,19 +294,27 @@ export async function PUT(req: NextRequest) {
       const next = {
         ...state,
         ...body,
+        productName,
+        productSlug,
         query,
         querySlug,
         rankedFile,
         verdictFile,
-        productSlug: slugify(String(body.productSlug ?? state.productSlug)),
-        steps: { ...state.steps, product: "done", analysis: "done" },
+        steps: {
+          ...state.steps,
+          product: "done",
+          analysis: "done",
+        },
       };
 
       await saveState(next);
+      await upsertProductToDb(next);
+
       return NextResponse.json(next);
     }
 
     if (action === "check-assets") {
+      const productName = String(body.productName ?? state.productName ?? "");
       const productSlug = slugify(String(body.productSlug ?? state.productSlug));
       const resourceIds = String(body.resourceIds ?? state.resourceIds)
         .split(",")
@@ -243,13 +335,24 @@ export async function PUT(req: NextRequest) {
 
           try {
             const manifest = JSON.parse(await readFile(manifestPath, "utf-8"));
+
             return {
               resourceId,
+              resourceName: manifest.resourceName ?? resourceId,
+              sourceUrl: manifest.sourcePageUrl ?? manifest.sourceUrl ?? null,
+              rule: manifest.rule ?? null,
               exists: true,
               assetCount: manifest.assetCount ?? manifest.assets?.length ?? 0,
             };
           } catch {
-            return { resourceId, exists: false, assetCount: 0 };
+            return {
+              resourceId,
+              resourceName: resourceId,
+              sourceUrl: null,
+              rule: null,
+              exists: false,
+              assetCount: 0,
+            };
           }
         }),
       );
@@ -259,41 +362,57 @@ export async function PUT(req: NextRequest) {
       const next = {
         ...state,
         ...body,
+        productName,
         productSlug,
         resourceIds: resourceIds.join(","),
         assetResources: resources,
-        steps: { ...state.steps, assets: allOk ? "done" : "needs-action" },
+        steps: {
+          ...state.steps,
+          assets: allOk ? "done" : "needs-action",
+        },
       };
 
       await saveState(next);
+      await upsertProductToDb(next);
+      await syncAssetResourcesToDb(next);
+
       return NextResponse.json(next);
     }
 
     if (action === "generate-video") {
+      const productName = String(body.productName ?? state.productName ?? "");
       const productSlug = slugify(String(body.productSlug ?? state.productSlug));
       const resourceIds = String(body.resourceIds ?? state.resourceIds);
-      const productName = String(body.productName ?? state.productName);
       const model = String(body.model ?? state.model);
-      const targetSeconds = Number(body.targetSeconds ?? state.targetSeconds ?? 120);
+      const targetSeconds = Number(
+        body.targetSeconds ?? state.targetSeconds ?? 120,
+      );
       const imageLimit = Number(body.imageLimit ?? state.imageLimit ?? 16);
       const verdictFile = String(body.verdictFile ?? state.verdictFile);
 
       if (!verdictFile) {
         return NextResponse.json(
-          { error: "먼저 Step 2에서 Review Analysis를 실행해 verdictFile을 생성하세요." },
+          { error: "먼저 Review Analysis를 실행해 verdictFile을 생성하세요." },
           { status: 400 },
         );
       }
 
       const result = await runPython([
         "web/scripts/generate_dubbed_review_video.py",
-        "--product-slug", productSlug,
-        "--resource-ids", resourceIds,
-        "--product-name", productName,
-        "--model", model,
-        "--limit", String(imageLimit),
-        "--target-seconds", String(targetSeconds),
-        "--verdict-file", verdictFile,
+        "--product-slug",
+        productSlug,
+        "--resource-ids",
+        resourceIds,
+        "--product-name",
+        productName,
+        "--model",
+        model,
+        "--limit",
+        String(imageLimit),
+        "--target-seconds",
+        String(targetSeconds),
+        "--verdict-file",
+        verdictFile,
       ]);
 
       const next = {
@@ -308,10 +427,15 @@ export async function PUT(req: NextRequest) {
         verdictFile,
         videoPath: result.publicPath,
         videoResult: result,
-        steps: { ...state.steps, video: "done" },
+        steps: {
+          ...state.steps,
+          video: "done",
+        },
       };
 
       await saveState(next);
+      await upsertProductToDb(next);
+
       return NextResponse.json(next);
     }
 
