@@ -804,8 +804,8 @@ def render_caption_card_png(
     body_block_h = sum(body_heights) + max(0, len(body_lines) - 1) * body_line_gap
     total_text_h = title_h + title_body_gap + body_block_h
 
-    pad_y = 86 if is_shorts else 76
-    min_h = 350 if is_shorts else 295
+    pad_y = 72 if is_shorts else 62
+    min_h = 315 if is_shorts else 260
     max_h = int(height * 0.34)
     card_h = max(min_h, min(max_h, total_text_h + pad_y * 2))
 
@@ -855,8 +855,8 @@ def render_caption_card_png(
     )
     accent_w = min(int(card_w * 0.28), 260)
     draw.rounded_rectangle(
-        [x_center - accent_w // 2, card_y + card_h - 30,
-         x_center + accent_w // 2, card_y + card_h - 24],
+        [x_center - accent_w // 2, card_y + card_h - 24,
+         x_center + accent_w // 2, card_y + card_h - 18],
         radius=4,
         fill=(255, 210, 92, 176),
     )
@@ -913,7 +913,7 @@ def render_summary_card_png(
     radius = 30 if is_shorts else 34
 
     max_card_h = int(height * 0.58)
-    min_card_h = 550 if is_shorts else 460
+    min_card_h = 500 if is_shorts else 410
     section_size = 42 if is_shorts else 38
     body_size = 31 if is_shorts else 28
     body_min = 23 if is_shorts else 22
@@ -946,7 +946,7 @@ def render_summary_card_png(
             total_text_h += block_h + (section_gap if blocks else 0)
             blocks.append((label, wrapped, font, label_h, line_h))
 
-        pad_y = 82 if is_shorts else 74
+        pad_y = 64 if is_shorts else 58
         card_h = max(min_card_h, total_text_h + pad_y * 2)
         best = (blocks, section_font, pad_y, card_h, total_text_h, label_body_gap, section_gap, line_gap)
 
@@ -985,8 +985,8 @@ def render_summary_card_png(
     )
     accent_w = min(int(card_w * 0.28), 240)
     draw.rounded_rectangle(
-        [x_center - accent_w // 2, card_y + card_h - 30,
-         x_center + accent_w // 2, card_y + card_h - 24],
+        [x_center - accent_w // 2, card_y + card_h - 24,
+         x_center + accent_w // 2, card_y + card_h - 18],
         radius=4,
         fill=(255, 210, 92, 176),
     )

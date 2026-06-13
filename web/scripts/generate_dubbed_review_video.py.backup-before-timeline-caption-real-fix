@@ -748,7 +748,6 @@ def draw_centered_check_lines(
         cursor_y += body_h + line_gap
 
 
-
 def render_caption_card_png(
     out_path: Path,
     overlay: dict,
@@ -756,114 +755,124 @@ def render_caption_card_png(
     width: int = 1920,
     height: int = 1080,
 ):
-    """Premium glass caption card with safer padding and no overflow."""
+    """Render a more premium YouTube-style glass caption card.
+
+    - 16:9 롱폼: 하단 중앙의 넓은 글래스 카드
+    - 9:16 쇼츠: 화면 중앙보다 약간 아래의 세로형 카드
+    - 카드 뒤에는 은은한 그라데이션을 깔아 제품 이미지와 자막의 분리감을 높입니다.
+    """
     canvas = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(canvas)
-    is_shorts = height > width
 
     title = str(overlay.get("title", "")).strip()
     raw_lines = overlay.get("lines", [])
     if isinstance(raw_lines, str):
         raw_lines = [raw_lines]
-    body_paragraphs = [clean_card_line(x) for x in raw_lines if str(x).strip()]
-    body_paragraphs = body_paragraphs[:3 if is_shorts else 2]
+    body_paragraphs = [clean_card_line(x) for x in raw_lines[:2] if str(x).strip()]
 
-    gradient_top = int(height * (0.42 if is_shorts else 0.54))
+    is_shorts = height > width
+
+    # 영상 하단/중앙부에 얇은 어두운 그라데이션을 넣어 텍스트 가독성을 올립니다.
+    gradient_top = int(height * (0.45 if is_shorts else 0.56))
     for y in range(gradient_top, height):
         ratio = (y - gradient_top) / max(1, height - gradient_top)
-        alpha = int((106 if is_shorts else 86) * ratio * ratio)
+        alpha = int((90 if is_shorts else 78) * ratio * ratio)
         draw.line([(0, y), (width, y)], fill=(0, 0, 0, alpha))
 
-    card_w = int(width * (0.84 if is_shorts else 0.64))
-    card_w = min(card_w, int(width * 0.90))
-    card_x = (width - card_w) // 2
-    side_pad = int(width * (0.074 if is_shorts else 0.052))
-    text_max_width = card_w - side_pad * 2
+    preferred_text_width = int(width * (0.72 if is_shorts else 0.62))
+    min_card_w = int(width * (0.70 if is_shorts else 0.44))
+    max_card_w = int(width * (0.88 if is_shorts else 0.74))
+    side_pad = int(width * (0.070 if is_shorts else 0.045))
+    radius = 30 if is_shorts else 34
 
-    max_lines = 3 if is_shorts else 2
-    title_size = 50 if is_shorts else 48
-    body_start = 36 if is_shorts else 33
-    body_min = 25 if is_shorts else 23
-    title_font = load_font(font_paths["title"], title_size)
+    title_font = load_font(font_paths["title"], 48 if is_shorts else 47)
+    body_font, body_lines = fit_text_block(
+        draw=draw,
+        paragraphs=body_paragraphs,
+        font_path=font_paths["body"],
+        start_size=36 if is_shorts else 32,
+        min_size=28 if is_shorts else 24,
+        max_width=preferred_text_width,
+        max_lines=3 if is_shorts else 2,
+    )
+
+    title_lines = wrap_text_to_width(draw, title, title_font, preferred_text_width)[:1] if title else []
+
+    line_widths = []
+    if title_lines:
+        line_widths.append(text_size(draw, title_lines[0], title_font)[0])
+    line_widths.extend(text_size(draw, line, body_font)[0] for line in body_lines)
+    max_line_w = max(line_widths or [int(width * 0.42)])
+
+    card_w = max(min_card_w, min(max_card_w, max_line_w + side_pad * 2))
+    card_x = int((width - card_w) / 2)
+    text_max_width = int(card_w - side_pad * 2)
 
     body_font, body_lines = fit_text_block(
         draw=draw,
         paragraphs=body_paragraphs,
         font_path=font_paths["body"],
-        start_size=body_start,
-        min_size=body_min,
+        start_size=36 if is_shorts else 32,
+        min_size=28 if is_shorts else 24,
         max_width=text_max_width,
-        max_lines=max_lines,
+        max_lines=3 if is_shorts else 2,
     )
     title_lines = wrap_text_to_width(draw, title, title_font, text_max_width)[:1] if title else []
 
     title_h = text_size(draw, title_lines[0], title_font)[1] if title_lines else 0
     body_heights = [text_size(draw, line, body_font)[1] for line in body_lines]
-    body_line_gap = 32 if is_shorts else 30
-    title_body_gap = 56 if title_lines and body_lines else 0
+    body_line_gap = 22 if is_shorts else 24
+    title_body_gap = 34 if title_lines and body_lines else 0
     body_block_h = sum(body_heights) + max(0, len(body_lines) - 1) * body_line_gap
     total_text_h = title_h + title_body_gap + body_block_h
 
-    pad_y = 86 if is_shorts else 76
-    min_h = 350 if is_shorts else 295
-    max_h = int(height * 0.34)
-    card_h = max(min_h, min(max_h, total_text_h + pad_y * 2))
-
-    available_text_h = card_h - pad_y * 2
-    if total_text_h > available_text_h:
-        body_font, body_lines = fit_text_block(
-            draw=draw,
-            paragraphs=body_paragraphs,
-            font_path=font_paths["body"],
-            start_size=max(body_min, body_start - 4),
-            min_size=body_min,
-            max_width=text_max_width,
-            max_lines=max_lines,
-        )
-        body_heights = [text_size(draw, line, body_font)[1] for line in body_lines]
-        body_block_h = sum(body_heights) + max(0, len(body_lines) - 1) * body_line_gap
-        total_text_h = title_h + title_body_gap + body_block_h
-
+    pad_y = 40 if is_shorts else 34
+    card_h = max(230 if is_shorts else 208, min(430 if is_shorts else 300, total_text_h + pad_y * 2))
+    card_y = int(height * 0.60) if is_shorts else height - card_h - 64
     if is_shorts:
-        card_y = int(height * 0.57)
-        card_y = min(card_y, height - card_h - 230)
-        card_y = max(220, card_y)
-        radius = 30
-    else:
-        card_y = height - card_h - 72
-        radius = 34
-
+        card_y = min(card_y, height - card_h - 210)
     x_center = width // 2
-    shadow_offset = 18 if is_shorts else 15
 
+    # 그림자 + 글래스 카드. 완전 흰 박스보다 훨씬 요즘 유튜브 리뷰 영상에 가깝게 보입니다.
+    shadow_offset = 16 if is_shorts else 14
     draw.rounded_rectangle(
-        [card_x, card_y + shadow_offset, card_x + card_w, card_y + card_h + shadow_offset],
+        [card_x + 0, card_y + shadow_offset, card_x + card_w, card_y + card_h + shadow_offset],
         radius=radius,
-        fill=(0, 0, 0, 86),
+        fill=(0, 0, 0, 76),
     )
     draw.rounded_rectangle(
         [card_x, card_y, card_x + card_w, card_y + card_h],
         radius=radius,
-        fill=(18, 20, 26, 194),
-        outline=(255, 255, 255, 52),
+        fill=(18, 20, 26, 188),
+        outline=(255, 255, 255, 46),
         width=2,
     )
+
+    # 상단 하이라이트와 브랜드 컬러 느낌의 짧은 accent bar
     draw.rounded_rectangle(
-        [card_x + 24, card_y + 20, card_x + card_w - 24, card_y + 22],
+        [card_x + 22, card_y + 18, card_x + card_w - 22, card_y + 20],
         radius=2,
-        fill=(255, 255, 255, 52),
+        fill=(255, 255, 255, 48),
     )
-    accent_w = min(int(card_w * 0.28), 260)
+    accent_w = min(int(card_w * 0.30), 260)
     draw.rounded_rectangle(
-        [x_center - accent_w // 2, card_y + card_h - 30,
-         x_center + accent_w // 2, card_y + card_h - 24],
+        [x_center - accent_w // 2, card_y + card_h - 22, x_center + accent_w // 2, card_y + card_h - 16],
         radius=4,
-        fill=(255, 210, 92, 176),
+        fill=(255, 210, 92, 170),
     )
 
-    start_y = card_y + max(42 if is_shorts else 38, (card_h - total_text_h) // 2)
+    start_y = card_y + max(22, (card_h - total_text_h) // 2) - 4
+
     if title_lines:
-        draw_centered_lines(draw, title_lines, title_font, x_center, start_y, (255, 255, 255, 246), 0)
+        draw_centered_lines(
+            draw,
+            title_lines,
+            title_font,
+            x_center,
+            start_y,
+            fill=(255, 255, 255, 245),
+            line_gap=0,
+        )
         start_y += title_h + title_body_gap
 
     draw_centered_lines(
@@ -872,8 +881,8 @@ def render_caption_card_png(
         body_font,
         x_center,
         start_y,
-        (238, 241, 247, 238),
-        body_line_gap,
+        fill=(238, 241, 247, 235),
+        line_gap=body_line_gap,
     )
 
     canvas.save(out_path)
@@ -886,124 +895,56 @@ def render_summary_card_png(
     width: int = 1920,
     height: int = 1080,
 ):
-    """Premium compact summary card. Fits text inside the box."""
     canvas = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(canvas)
-    is_shorts = height > width
 
-    gradient_top = int(height * (0.36 if is_shorts else 0.44))
-    for y in range(gradient_top, height):
-        ratio = (y - gradient_top) / max(1, height - gradient_top)
-        alpha = int((122 if is_shorts else 100) * ratio * ratio)
-        draw.line([(0, y), (width, y)], fill=(0, 0, 0, alpha))
+    card_w = int(width * 0.68)
+    card_h = 700
+    card_x = (width - card_w) // 2
+    card_y = (height - card_h) // 2
+    radius = 36
+
+    draw.rounded_rectangle(
+        [card_x, card_y, card_x + card_w, card_y + card_h],
+        radius=radius,
+        fill=(255, 255, 255, 224),
+        outline=(0, 0, 0, 32),
+        width=2,
+    )
+
+    section_font = load_font(font_paths["section"], 38)
+    body_font = load_font(font_paths["body"], 31)
+    one_line_font = load_font(font_paths["body"], 32)
+
+    x_center = width // 2
+    max_width = int(card_w * 0.76)
+    y = card_y + 78
+
+    def draw_section(label: str, items: list[str], y_pos: int) -> int:
+        draw_centered_lines(draw, [label], section_font, x_center, y_pos, (18, 18, 18, 255), 0)
+        y_pos += 64
+        for item in items[:3]:
+            wrapped = wrap_text_to_width(draw, clean_card_line(item), body_font, max_width)
+            draw_centered_lines(draw, wrapped, body_font, x_center, y_pos, (28, 28, 28, 255), 18)
+            line_h = text_size(draw, "가", body_font)[1]
+            y_pos += len(wrapped) * (line_h + 18) + 12
+        return y_pos + 22
 
     pros = [str(x).strip() for x in summary.get("pros", []) if str(x).strip()]
     cons = [str(x).strip() for x in summary.get("cons", []) if str(x).strip()]
     one_line = str(summary.get("oneLine", "")).strip()
 
-    sections_src = [
-        ("장점", pros[:2]),
-        ("단점", cons[:2]),
-        ("한줄평", [one_line] if one_line else []),
-    ]
+    y = draw_section("장점", pros, y)
+    y = draw_section("단점", cons, y)
 
-    card_w = int(width * (0.84 if is_shorts else 0.60))
-    card_x = (width - card_w) // 2
-    text_max_width = int(card_w * (0.78 if is_shorts else 0.80))
-    radius = 30 if is_shorts else 34
-
-    max_card_h = int(height * 0.58)
-    min_card_h = 550 if is_shorts else 460
-    section_size = 42 if is_shorts else 38
-    body_size = 31 if is_shorts else 28
-    body_min = 23 if is_shorts else 22
-
-    best = None
-    while body_size >= body_min:
-        section_font = load_font(font_paths["section"], section_size)
-        body_font = load_font(font_paths["body"], body_size)
-        one_line_font = load_font(font_paths["body"], body_size)
-
-        label_body_gap = 52 if is_shorts else 46
-        section_gap = 36 if is_shorts else 32
-        line_gap = 16 if is_shorts else 14
-
-        blocks = []
-        total_text_h = 0
-
-        for label, items in sections_src:
-            wrapped = []
-            font = one_line_font if label == "한줄평" else body_font
-            for item in items:
-                wrapped.extend(wrap_text_to_width(draw, clean_card_line(item), font, text_max_width)[:2])
-
-            if not wrapped:
-                continue
-
-            label_h = text_size(draw, label, section_font)[1]
-            line_h = text_size(draw, "가", font)[1]
-            block_h = label_h + label_body_gap + len(wrapped) * line_h + max(0, len(wrapped) - 1) * line_gap
-            total_text_h += block_h + (section_gap if blocks else 0)
-            blocks.append((label, wrapped, font, label_h, line_h))
-
-        pad_y = 82 if is_shorts else 74
-        card_h = max(min_card_h, total_text_h + pad_y * 2)
-        best = (blocks, section_font, pad_y, card_h, total_text_h, label_body_gap, section_gap, line_gap)
-
-        if card_h <= max_card_h:
-            break
-
-        body_size -= 2
-        section_size = max(32 if is_shorts else 30, section_size - 1)
-
-    blocks, section_font, pad_y, card_h, total_text_h, label_body_gap, section_gap, line_gap = best
-    card_h = min(card_h, max_card_h)
-
-    card_y = int((height - card_h) / 2)
-    if not is_shorts:
-        card_y = min(card_y + 30, height - card_h - 72)
-
-    x_center = width // 2
-    shadow_offset = 18 if is_shorts else 15
-
-    draw.rounded_rectangle(
-        [card_x, card_y + shadow_offset, card_x + card_w, card_y + card_h + shadow_offset],
-        radius=radius,
-        fill=(0, 0, 0, 90),
-    )
-    draw.rounded_rectangle(
-        [card_x, card_y, card_x + card_w, card_y + card_h],
-        radius=radius,
-        fill=(18, 20, 26, 198),
-        outline=(255, 255, 255, 54),
-        width=2,
-    )
-    draw.rounded_rectangle(
-        [card_x + 24, card_y + 20, card_x + card_w - 24, card_y + 22],
-        radius=2,
-        fill=(255, 255, 255, 52),
-    )
-    accent_w = min(int(card_w * 0.28), 240)
-    draw.rounded_rectangle(
-        [x_center - accent_w // 2, card_y + card_h - 30,
-         x_center + accent_w // 2, card_y + card_h - 24],
-        radius=4,
-        fill=(255, 210, 92, 176),
-    )
-
-    y = card_y + max(42 if is_shorts else 38, (card_h - total_text_h) // 2)
-
-    for idx, (label, wrapped, font, label_h, line_h) in enumerate(blocks):
-        if idx:
-            y += section_gap
-
-        draw_centered_lines(draw, [label], section_font, x_center, y, (255, 255, 255, 246), 0)
-        y += label_h + label_body_gap
-
-        draw_centered_lines(draw, wrapped, font, x_center, y, (238, 241, 247, 238), line_gap)
-        y += len(wrapped) * line_h + max(0, len(wrapped) - 1) * line_gap
+    draw_centered_lines(draw, ["한줄평"], section_font, x_center, y, (18, 18, 18, 255), 0)
+    y += 68
+    one_lines = wrap_text_to_width(draw, one_line, one_line_font, max_width)
+    draw_centered_lines(draw, one_lines[:3], one_line_font, x_center, y, (18, 18, 18, 255), 20)
 
     canvas.save(out_path)
+
+
 
 def render_watermark_png(
     out_path: Path,
@@ -1446,141 +1387,6 @@ def render_video_with_transitions(
 
 
 
-
-def build_caption_timeline(captions: list[dict], total_seconds: float) -> list[dict]:
-    """Build caption timings independent from image cuts."""
-    clean: list[dict] = []
-
-    for item in captions or []:
-        if not isinstance(item, dict):
-            continue
-
-        title = str(item.get("title", "")).strip()
-        lines = item.get("lines", [])
-
-        if isinstance(lines, str):
-            lines = [lines]
-
-        lines = [str(x).strip() for x in lines if str(x).strip()]
-
-        if title or lines:
-            copied = dict(item)
-            copied["title"] = title
-            copied["lines"] = lines[:3]
-            clean.append(copied)
-
-    if not clean or total_seconds <= 0:
-        return []
-
-    weights = []
-    for item in clean:
-        try:
-            w = float(item.get("durationWeight", 3.0))
-        except Exception:
-            w = 3.0
-        weights.append(max(1.0, min(5.0, w)))
-
-    total_weight = sum(weights) or float(len(clean))
-    timeline: list[dict] = []
-    cursor = 0.0
-
-    for item, weight in zip(clean, weights):
-        duration = max(2.8, total_seconds * weight / total_weight)
-
-        if cursor + duration > total_seconds:
-            duration = max(1.8, total_seconds - cursor)
-
-        if duration <= 1.0:
-            break
-
-        entry = dict(item)
-        entry["start"] = round(cursor, 3)
-        entry["duration"] = round(duration, 3)
-        entry["end"] = round(min(total_seconds, cursor + duration), 3)
-        timeline.append(entry)
-
-        cursor += duration
-
-        if cursor >= total_seconds - 0.5:
-            break
-
-    if timeline:
-        timeline[-1]["end"] = round(total_seconds, 3)
-        timeline[-1]["duration"] = round(max(1.0, total_seconds - float(timeline[-1]["start"])), 3)
-
-    return timeline
-
-
-def overlay_caption_timeline(
-    base_video_path: Path,
-    out_path: Path,
-    captions: list[dict],
-    total_seconds: float,
-    work_dir: Path,
-    font_paths: dict[str, str],
-    width: int = 1920,
-    height: int = 1080,
-    fps: int = 30,
-) -> list[dict]:
-    """Overlay caption cards on the already-transitioned video by narration time."""
-    timeline = build_caption_timeline(captions, total_seconds)
-
-    if not timeline:
-        if base_video_path != out_path:
-            subprocess.run(
-                ["ffmpeg", "-y", "-i", str(base_video_path), "-c:v", "copy", "-an", str(out_path)],
-                check=True,
-            )
-        return []
-
-    command = ["ffmpeg", "-y", "-i", str(base_video_path)]
-
-    for idx, item in enumerate(timeline, 1):
-        card_path = work_dir / f"timeline_caption_{idx:02d}_{width}x{height}.png"
-        render_caption_card_png(card_path, item, font_paths, width=width, height=height)
-        command.extend(["-loop", "1", "-t", f"{total_seconds + 2.0:.3f}", "-i", str(card_path)])
-
-    parts: list[str] = []
-    prev = "[0:v]"
-
-    for idx, item in enumerate(timeline, 1):
-        start = float(item.get("start", 0.0))
-        duration = float(item.get("duration", 2.0))
-        end = float(item.get("end", start + duration))
-
-        fade_in = min(0.35, max(0.12, duration * 0.18))
-        fade_out = min(0.45, max(0.12, duration * 0.22))
-        fade_out_start = max(0.0, duration - fade_out)
-
-        card = f"[card{idx}]"
-        out = f"[vt{idx}]" if idx < len(timeline) else "[vout]"
-
-        parts.append(
-            f"[{idx}:v]format=rgba,"
-            f"fade=t=in:st=0:d={fade_in:.3f}:alpha=1,"
-            f"fade=t=out:st={fade_out_start:.3f}:d={fade_out:.3f}:alpha=1,"
-            f"setpts=PTS+{start:.3f}/TB{card}"
-        )
-        parts.append(
-            f"{prev}{card}overlay=0:0:enable='between(t,{start:.3f},{end:.3f})'{out}"
-        )
-        prev = out
-
-    command.extend([
-        "-filter_complex", ";".join(parts),
-        "-map", "[vout]",
-        "-an",
-        "-r", str(fps),
-        "-pix_fmt", "yuv420p",
-        "-c:v", "libx264",
-        "-preset", "medium",
-        "-crf", "18",
-        str(out_path),
-    ])
-
-    subprocess.run(command, check=True)
-    return timeline
-
 def distribute_scene_durations(
     captions: list[dict],
     scene_count: int,
@@ -1624,7 +1430,6 @@ def distribute_scene_durations(
     return durations
 
 
-
 def render_scene(
     image_path: Path,
     clip_path: Path,
@@ -1637,10 +1442,13 @@ def render_scene(
     fps: int = 30,
     font_paths: dict[str, str] | None = None,
 ):
-    """Render image-only scene. Captions are overlaid later by narration timeline."""
+    frames = int(seconds * fps)
+
     motion_filter = scene_motion_filter(scene_index, width, height, seconds, fps)
-    filter_complex = f"[0:v]{motion_filter},format=rgba[base]"
+    base_filter = f"[0:v]{motion_filter},format=rgba[base]"
+
     command = ["ffmpeg", "-y", "-loop", "1", "-i", str(image_path)]
+    filter_complex = base_filter
 
     watermark_path = None
     if work_dir and font_paths:
@@ -1648,22 +1456,44 @@ def render_scene(
         if not watermark_path.exists():
             render_watermark_png(watermark_path, font_paths, width=width, height=height)
 
-    if watermark_path:
-        command.extend(["-loop", "1", "-i", str(watermark_path)])
-        filter_complex += ";[base][1:v]overlay=0:0:shortest=1,format=yuv420p[outv]"
+    if overlay and work_dir and font_paths:
+        card_path = work_dir / f"scene_{scene_index:02d}_caption_card.png"
+        render_caption_card_png(card_path, overlay, font_paths, width=width, height=height)
+        command.extend(["-loop", "1", "-i", str(card_path)])
+        fade_out_start = max(0.0, float(seconds) - 0.55)
+        filter_complex += (
+            f";[1:v]format=rgba,fade=t=in:st=0:d=0.35:alpha=1,"
+            f"fade=t=out:st={fade_out_start:.3f}:d=0.50:alpha=1[card]"
+        )
+        if watermark_path:
+            command.extend(["-loop", "1", "-i", str(watermark_path)])
+            filter_complex += ";[base][card]overlay=0:0:shortest=1[tmp1];[tmp1][2:v]overlay=0:0:shortest=1,format=yuv420p[outv]"
+        else:
+            filter_complex += ";[base][card]overlay=0:0:shortest=1,format=yuv420p[outv]"
     else:
-        filter_complex += ";[base]format=yuv420p[outv]"
+        if watermark_path:
+            command.extend(["-loop", "1", "-i", str(watermark_path)])
+            filter_complex += ";[base][1:v]overlay=0:0:shortest=1,format=yuv420p[outv]"
+        else:
+            filter_complex += ";[base]format=yuv420p[outv]"
 
-    command.extend([
-        "-filter_complex", filter_complex,
-        "-map", "[outv]",
-        "-t", str(seconds),
-        "-r", str(fps),
-        "-an",
-        str(clip_path),
-    ])
+    command.extend(
+        [
+            "-filter_complex",
+            filter_complex,
+            "-map",
+            "[outv]",
+            "-t",
+            str(seconds),
+            "-r",
+            str(fps),
+            "-an",
+            str(clip_path),
+        ]
+    )
 
     subprocess.run(command, check=True)
+
 
 def render_summary_scene(
     image_path: Path,
@@ -1915,7 +1745,10 @@ def main():
 
         if not image_path.exists():
             raise FileNotFoundError(f"image not found: {image_path}")
-        overlay = None  # captions are overlaid later by narration timeline, not by image cuts
+
+        overlay = None
+        if not args.no_overlay and scene_captions:
+            overlay = scene_captions[min(i - 1, len(scene_captions) - 1)]
 
         scene_seconds = scene_durations[i - 1] if i - 1 < len(scene_durations) else max(3.2, image_target_seconds / len(assets))
 
@@ -1961,23 +1794,6 @@ def main():
         fps=30,
         transition_duration=VIDEO_TRANSITION_DURATION,
     )
-
-    caption_timeline: list[dict] = []
-    video_base_path = silent_path
-    if not args.no_overlay and scene_captions and font_paths:
-        captioned_silent_path = work_dir / f"{prefix}silent_caption_timeline.mp4"
-        caption_timeline = overlay_caption_timeline(
-            base_video_path=silent_path,
-            out_path=captioned_silent_path,
-            captions=scene_captions,
-            total_seconds=audio_seconds,
-            work_dir=work_dir,
-            font_paths=font_paths,
-            width=video_width,
-            height=video_height,
-            fps=30,
-        )
-        video_base_path = captioned_silent_path
 
     final_name = f"{resource_key}-qwen-shorts-ko.mp4" if is_shorts else f"{resource_key}-qwen-dubbed-ko.mp4"
     final_path = out_dir / final_name
@@ -2053,7 +1869,7 @@ def main():
                 "ffmpeg",
                 "-y",
                 "-i",
-                str(video_base_path),
+                str(silent_path),
                 "-i",
                 str(mixed_audio_path),
                 "-c:v",
@@ -2073,7 +1889,7 @@ def main():
                 "ffmpeg",
                 "-y",
                 "-i",
-                str(video_base_path),
+                str(silent_path),
                 "-i",
                 str(audio_path),
                 "-c:v",
@@ -2112,8 +1928,6 @@ def main():
         "durationSeconds": final_audio_duration,
         "audioDurationSeconds": audio_seconds,
         "summarySeconds": summary_seconds,
-        "captionTimingMode": "narration-timeline-independent",
-        "captionTimeline": caption_timeline,
         "assetCount": len(assets),
         "selectedAssetsUsed": bool(load_selected_public_paths(root, args.product_slug)),
         "overlayEnabled": not args.no_overlay,
