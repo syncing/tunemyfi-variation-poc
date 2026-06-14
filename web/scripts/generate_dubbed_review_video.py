@@ -1,6 +1,9 @@
+import sys
+import os
 import argparse
 import asyncio
 import json
+import re
 import math
 import random
 import subprocess
@@ -12,9 +15,286 @@ from typing import Any
 import edge_tts
 from PIL import Image, ImageDraw, ImageFont
 
+
+CARD_TITLE_FILL = (245, 205, 96, 255)          # 기본 카드 제목: 골드
+SUMMARY_PROS_TITLE_FILL = (120, 190, 255, 255) # 장점: 블루
+SUMMARY_CONS_TITLE_FILL = (255, 138, 138, 255) # 단점: 코랄/레드
+SUMMARY_BOTTOM_TITLE_FILL = CARD_TITLE_FILL # 한줄평: 텍스트 박스 제목과 같은 골드
+BODY_TEXT_FILL = (245, 245, 245, 255)          # 본문: 거의 흰색
+
+RENDER_LANGUAGE_PACKS = {
+    "ko": {
+        "keyPoints": "핵심 포인트",
+        "buyerCheck": "구매 전 확인",
+        "whatStandsOut": "주목할 점",
+        "bottomLine": "한 줄 결론",
+        "pros": "장점",
+        "cons": "단점",
+        "summary": "요약",
+        "fallbackLine": "실제 사용자 의견에서 반복적으로 언급된 부분을 압축했음",
+        "buyerLine": "구매 전 확인하면 좋은 포인트를 간결하게 압축했음",
+    },
+    "en": {
+        "keyPoints": "Key Points",
+        "buyerCheck": "Buyer Check",
+        "whatStandsOut": "What Stands Out",
+        "bottomLine": "Bottom Line",
+        "pros": "Pros",
+        "cons": "Cons",
+        "summary": "Summary",
+        "fallbackLine": "A concise takeaway from repeated user feedback.",
+        "buyerLine": "A concise buyer check before purchase.",
+    },
+    "de": {
+        "keyPoints": "Kernpunkte",
+        "buyerCheck": "Vor dem Kauf prüfen",
+        "whatStandsOut": "Was auffällt",
+        "bottomLine": "Fazit",
+        "pros": "Vorteile",
+        "cons": "Nachteile",
+        "summary": "Zusammenfassung",
+        "fallbackLine": "Eine kurze Zusammenfassung häufig genannter Nutzermeinungen.",
+        "buyerLine": "Ein kurzer Check vor dem Kauf.",
+    },
+    "fr": {
+        "keyPoints": "Points clés",
+        "buyerCheck": "À vérifier avant achat",
+        "whatStandsOut": "Ce qui se distingue",
+        "bottomLine": "Conclusion",
+        "pros": "Points forts",
+        "cons": "Points faibles",
+        "summary": "Résumé",
+        "fallbackLine": "Un résumé concis des avis utilisateurs les plus récurrents.",
+        "buyerLine": "Un point rapide à vérifier avant l'achat.",
+    },
+    "ja": {
+        "keyPoints": "注目ポイント",
+        "buyerCheck": "購入前チェック",
+        "whatStandsOut": "目立つポイント",
+        "bottomLine": "結論",
+        "pros": "良い点",
+        "cons": "気になる点",
+        "summary": "まとめ",
+        "fallbackLine": "ユーザーの声でよく挙がるポイントを簡潔にまとめました。",
+        "buyerLine": "購入前に確認したいポイントを簡潔にまとめました。",
+    },
+    "es": {
+        "keyPoints": "Puntos clave",
+        "buyerCheck": "Antes de comprar",
+        "whatStandsOut": "Lo más destacable",
+        "bottomLine": "Conclusión",
+        "pros": "Pros",
+        "cons": "Contras",
+        "summary": "Resumen",
+        "fallbackLine": "Un resumen breve de los comentarios más repetidos por los usuarios.",
+        "buyerLine": "Un punto rápido a revisar antes de comprar.",
+    },
+    "pt": {
+        "keyPoints": "Pontos-chave",
+        "buyerCheck": "Antes de comprar",
+        "whatStandsOut": "O que se destaca",
+        "bottomLine": "Conclusão",
+        "pros": "Prós",
+        "cons": "Contras",
+        "summary": "Resumo",
+        "fallbackLine": "Um resumo curto dos pontos mais citados pelos usuários.",
+        "buyerLine": "Um ponto rápido para verificar antes da compra.",
+    },
+}
+
+
+def infer_render_language():
+    joined = " ".join(sys.argv).lower()
+    env_lang = os.environ.get("TUNEMYFI_LANG", "").strip().lower()
+    if env_lang in RENDER_LANGUAGE_PACKS:
+        return env_lang
+
+    for lang in ("en", "de", "fr", "ja", "es", "pt", "ko"):
+        patterns = [
+            f"-dubbed-{lang}",
+            f"_{lang}.txt",
+            f"_{lang}.json",
+            f"-{lang}.txt",
+            f"-{lang}.json",
+        ]
+        if any(pattern in joined for pattern in patterns):
+            return lang
+
+    voice_map = {
+        "en-us": "en",
+        "de-de": "de",
+        "fr-fr": "fr",
+        "ja-jp": "ja",
+        "es-es": "es",
+        "pt-br": "pt",
+        "ko-kr": "ko",
+    }
+    for key, lang in voice_map.items():
+        if key in joined:
+            return lang
+
+    return "ko"
+
+RENDER_LANGUAGE = infer_render_language()
+RENDER_PACK = RENDER_LANGUAGE_PACKS.get(RENDER_LANGUAGE, RENDER_LANGUAGE_PACKS["ko"])
+
+def find_arg_value(name: str) -> str | None:
+    for i, value in enumerate(sys.argv):
+        if value == name and i + 1 < len(sys.argv):
+            return sys.argv[i + 1]
+    return None
+
+def pick_key_points_from_overlay_file():
+    overlay_path = find_arg_value("--overlay-plan-file")
+    if not overlay_path:
+        return None
+
+    try:
+        path = Path(overlay_path)
+        if not path.exists():
+            return None
+
+        plan = json.loads(path.read_text(encoding="utf-8"))
+        captions = plan.get("sceneCaptions", []) if isinstance(plan, dict) else []
+        if not captions or not isinstance(captions[0], dict):
+            return None
+
+        lines = captions[0].get("lines", [])
+        if not isinstance(lines, list):
+            return None
+
+        clean_lines = [x.strip() for x in lines if isinstance(x, str) and x.strip()]
+        if not clean_lines:
+            return None
+
+        return {
+            "title": RENDER_PACK["keyPoints"],
+            "lines": clean_lines[:2],
+        }
+    except Exception:
+        return None
+
+
+def has_hangul_text(value):
+    return isinstance(value, str) and any("\uac00" <= ch <= "\ud7a3" for ch in value)
+
+def localize_overlay_text_for_render(value):
+    if not has_hangul_text(value) or RENDER_LANGUAGE == "ko":
+        return value
+
+    # 제목성 문구
+    title_map = {
+        "핵심 포인트": RENDER_PACK["keyPoints"],
+        "구매 전 확인": RENDER_PACK["buyerCheck"],
+        "주목할 점": RENDER_PACK["whatStandsOut"],
+        "요약": RENDER_PACK["summary"],
+        "장점": RENDER_PACK["pros"],
+        "단점": RENDER_PACK["cons"],
+        "한 줄 결론": RENDER_PACK["bottomLine"],
+        "한줄평": RENDER_PACK["bottomLine"],
+    }
+    if value.strip() in title_map:
+        return title_map[value.strip()]
+
+    # Key Points / Buyer Check 본문성 문구
+    if "실제 사용자" in value or "반복적으로 언급" in value or "공통적으로 드러난" in value:
+        return RENDER_PACK["fallbackLine"]
+
+    if "구매 전" in value or "구매전에" in value or "확인하면 좋은" in value:
+        return RENDER_PACK["buyerLine"]
+
+    if "핵심 장점" in value or "전반적인 장점" in value:
+        return RENDER_PACK["fallbackLine"]
+
+    if "일부 단점" in value or "확인할 부분" in value:
+        return RENDER_PACK["buyerLine"]
+
+    # 알 수 없는 한글 문장은 외국어 영상에 그대로 노출하지 않음
+    return RENDER_PACK["fallbackLine"]
+
+
+
+def pick_key_points_from_overlay_plan(overlay_plan):
+    if not isinstance(overlay_plan, dict):
+        return None
+
+    captions = overlay_plan.get("sceneCaptions")
+    if not isinstance(captions, list) or not captions:
+        return None
+
+    first = captions[0]
+    if not isinstance(first, dict):
+        return None
+
+    lines = first.get("lines")
+    if not isinstance(lines, list):
+        lines = []
+
+    clean_lines = []
+    for line in lines:
+        if isinstance(line, str) and line.strip():
+            clean_lines.append(line.strip())
+
+    if not clean_lines:
+        return None
+
+    return {
+        "title": RENDER_PACK["keyPoints"],
+        "lines": clean_lines[:2],
+    }
+
+def localize_overlay_plan_for_render(obj):
+    if isinstance(obj, str):
+        return localize_overlay_text_for_render(obj)
+
+    if isinstance(obj, list):
+        return [localize_overlay_plan_for_render(x) for x in obj]
+
+    if isinstance(obj, dict):
+        fixed = {}
+        for key, value in obj.items():
+            new_key = localize_overlay_text_for_render(key)
+            fixed[new_key] = localize_overlay_plan_for_render(value)
+        return fixed
+
+    return obj
+
+
+
 OLLAMA_URL = "http://localhost:11434/api/generate"
 
 
+
+
+
+def sanitize_overlay_text_for_language(value, language: str = "ko"):
+    """English output should never show Korean default labels."""
+    if not str(language or "").lower().startswith("en"):
+        return value
+
+    mapping = {
+        RENDER_PACK["keyPoints"]: "Key Points",
+        RENDER_PACK["summary"]: RENDER_PACK["summary"],
+        RENDER_PACK["pros"]: RENDER_PACK["pros"],
+        RENDER_PACK["cons"]: RENDER_PACK["cons"],
+        "추천": "Recommendation",
+        RENDER_PACK["buyerCheck"]: "Buyer Check",
+        "구매 전 확인 포인트": "Buyer Check",
+        RENDER_PACK["bottomLine"]: RENDER_PACK["bottomLine"],
+    }
+
+    def clean(x):
+        if isinstance(x, str):
+            for ko, en in mapping.items():
+                x = x.replace(ko, en)
+            return x
+        if isinstance(x, list):
+            return [clean(v) for v in x]
+        if isinstance(x, dict):
+            return {k: clean(v) for k, v in x.items()}
+        return x
+
+    return clean(value)
 
 
 def resolve_web_root() -> Path:
@@ -62,10 +342,10 @@ def unload_ollama_model(model: str):
         pass
 
 
-async def make_tts(text: str, out_path: Path):
+async def make_tts(text: str, out_path: Path, voice: str = "ko-KR-SunHiNeural"):
     communicate = edge_tts.Communicate(
         text=text,
-        voice="ko-KR-SunHiNeural",
+        voice=voice,
         rate="+0%",
         volume="+0%",
     )
@@ -454,7 +734,7 @@ def normalize_overlay_plan(plan: dict, scene_count: int) -> dict:
 
         captions.append(
             {
-                "title": shorten(item.get("title", "핵심 포인트"), 22),
+                "title": shorten(item.get("title", RENDER_PACK["keyPoints"]), 22),
                 "narrationSegment": shorten(item.get("narrationSegment", item.get("narration_segment", "")), 120),
                 "durationWeight": duration_weight,
                 "lines": [shorten(x, 82) for x in lines[:2] if str(x).strip()],
@@ -464,10 +744,10 @@ def normalize_overlay_plan(plan: dict, scene_count: int) -> dict:
     while len(captions) < scene_count:
         captions.append(
             {
-                "title": "핵심 포인트",
+                "title": RENDER_PACK["keyPoints"],
                 "narrationSegment": "리뷰 전반의 핵심 평가를 정리하는 구간",
                 "durationWeight": 3.0,
-                "lines": ["실제 사용자 의견에서 반복적으로 언급된 부분을 정리했습니다.", "구매 전 확인하면 좋은 포인트를 간결하게 압축했습니다."],
+                "lines": ["실제 사용자 의견에서 반복적으로 언급된 부분을 정리했습니다.", "긴 배터리 시간과 USB-C DAC 기능이 주요 강점으로 언급됩니다."],
             }
         )
 
@@ -519,7 +799,7 @@ def generate_overlay_plan(
             {
                 "sceneCaptions": [
                     {
-                        "title": "핵심 포인트",
+                        "title": RENDER_PACK["keyPoints"],
                         "lines": ["주요 리뷰에서 공통적으로 드러난 평가를 영상에 맞춰 정리했습니다.", "구매 전에 확인하면 좋은 핵심 포인트를 두 줄로 압축했습니다."],
                     }
                     for _ in range(scene_count)
@@ -749,6 +1029,103 @@ def draw_centered_check_lines(
 
 
 
+
+def to_eumseum_text(value: str) -> str:
+    """화면 카드용 문구를 짧은 -음/-슴 체에 가깝게 정리합니다.
+
+    나레이션은 건드리지 않고, 카드/서머리 화면에 표시되는 문구만 변환합니다.
+    완벽한 한국어 형태소 분석은 아니지만 제품 리뷰 카드 문구에는 충분히 자연스럽게 작동합니다.
+    """
+    text = str(value or "").strip()
+    if not text:
+        return text
+
+    replacements = [
+        ("좋습니다", "좋음"),
+        ("좋아요", "좋음"),
+        ("좋다", "좋음"),
+        ("아쉽습니다", "아쉬움"),
+        ("아쉬워요", "아쉬움"),
+        ("아쉽다", "아쉬움"),
+        ("뛰어납니다", "뛰어남"),
+        ("뛰어나요", "뛰어남"),
+        ("뛰어나다", "뛰어남"),
+        ("확실합니다", "확실함"),
+        ("확실해요", "확실함"),
+        ("확실하다", "확실함"),
+        ("강합니다", "강함"),
+        ("강해요", "강함"),
+        ("강하다", "강함"),
+        ("약합니다", "약함"),
+        ("약해요", "약함"),
+        ("약하다", "약함"),
+        ("편합니다", "편함"),
+        ("편해요", "편함"),
+        ("편하다", "편함"),
+        ("불편합니다", "불편함"),
+        ("불편해요", "불편함"),
+        ("불편하다", "불편함"),
+        ("가볍습니다", "가벼움"),
+        ("가벼워요", "가벼움"),
+        ("가볍다", "가벼움"),
+        ("무겁습니다", "무거움"),
+        ("무거워요", "무거움"),
+        ("무겁다", "무거움"),
+        ("선명합니다", "선명함"),
+        ("선명해요", "선명함"),
+        ("선명하다", "선명함"),
+        ("자연스럽습니다", "자연스러움"),
+        ("자연스러워요", "자연스러움"),
+        ("자연스럽다", "자연스러움"),
+        ("부드럽습니다", "부드러움"),
+        ("부드러워요", "부드러움"),
+        ("부드럽다", "부드러움"),
+        ("깔끔합니다", "깔끔함"),
+        ("깔끔해요", "깔끔함"),
+        ("깔끔하다", "깔끔함"),
+        ("안정적입니다", "안정적임"),
+        ("안정적이에요", "안정적임"),
+        ("안정적이다", "안정적임"),
+        ("만족스럽습니다", "만족스러움"),
+        ("만족스러워요", "만족스러움"),
+        ("만족스럽다", "만족스러움"),
+        ("추천합니다", "추천함"),
+        ("추천해요", "추천함"),
+        ("추천된다", "추천됨"),
+        ("느껴집니다", "느껴짐"),
+        ("느껴져요", "느껴짐"),
+        ("보입니다", "보임"),
+        ("보여요", "보임"),
+        ("됩니다", "됨"),
+        ("돼요", "됨"),
+        ("합니다", "함"),
+        ("해요", "함"),
+        ("입니다", "임"),
+        ("이에요", "임"),
+        ("예요", "임"),
+        ("습니다", "음"),
+    ]
+
+    for old, new in replacements:
+        text = text.replace(old, new)
+
+    # 문장 끝 정리
+    text = re.sub(r"다([.!?。]*)$", r"음\1", text)
+    text = re.sub(r"함함", "함", text)
+    text = re.sub(r"음음", "음", text)
+    text = re.sub(r"임임", "임", text)
+
+    return text
+
+
+def to_card_line_style(value: str) -> str:
+    return clean_card_line(to_eumseum_text(value))
+
+
+def to_card_title_style(value: str) -> str:
+    return to_eumseum_text(str(value or "").strip())
+
+
 def render_caption_card_png(
     out_path: Path,
     overlay: dict,
@@ -756,34 +1133,80 @@ def render_caption_card_png(
     width: int = 1920,
     height: int = 1080,
 ):
-    """Premium glass caption card with safer padding and no overflow."""
+    # Replace generic key-points overlay lines with actual localized overlay file lines.
+    try:
+        if isinstance(overlay, dict):
+            _picked_key_points = pick_key_points_from_overlay_file()
+            _overlay_title = str(overlay.get('title') or '').strip()
+            _overlay_lines = overlay.get('lines') if isinstance(overlay.get('lines'), list) else []
+            _overlay_joined = '\n'.join(str(x) for x in _overlay_lines)
+            _generic_lines = {
+                pack.get('fallbackLine', '') for pack in RENDER_LANGUAGE_PACKS.values()
+            } | {
+                pack.get('buyerLine', '') for pack in RENDER_LANGUAGE_PACKS.values()
+            }
+            _looks_generic = any(x and x in _overlay_joined for x in _generic_lines)
+            _is_keypoints_title = _overlay_title in {
+                pack.get('keyPoints', '') for pack in RENDER_LANGUAGE_PACKS.values()
+            }
+            if _picked_key_points and _is_keypoints_title and _looks_generic:
+                overlay = dict(overlay)
+                overlay['title'] = _picked_key_points['title']
+                overlay['lines'] = _picked_key_points['lines']
+                print('[TuneMyFi] replaced generic keypoints overlay:', overlay, file=sys.stderr)
+    except Exception as _e:
+        print('[TuneMyFi] keypoints overlay replace skipped:', _e, file=sys.stderr)
+
+    # Key Points card text: prefer the actual localized overlay file.
+    picked_key_points_file = pick_key_points_from_overlay_file()
+    if picked_key_points_file:
+        print("[TuneMyFi] picked key points from overlay file:", picked_key_points_file, file=sys.stderr)
+        fallback_caption_title = picked_key_points_file["title"]
+        picked_lines = picked_key_points_file["lines"]
+        fallback_caption_line = picked_lines[0] if len(picked_lines) >= 1 else RENDER_PACK["fallbackLine"]
+        fallback_buyer_line = picked_lines[1] if len(picked_lines) >= 2 else RENDER_PACK["buyerLine"]
+    else:
+        fallback_caption_title = RENDER_PACK["keyPoints"]
+        fallback_caption_line = RENDER_PACK["fallbackLine"]
+        fallback_buyer_line = RENDER_PACK["buyerLine"]
+    picked_key_points_file = pick_key_points_from_overlay_file()
+    if picked_key_points_file:
+        fallback_caption_title = picked_key_points_file["title"]
+        picked_lines = picked_key_points_file["lines"]
+        fallback_caption_line = picked_lines[0] if len(picked_lines) >= 1 else fallback_caption_line
+        fallback_buyer_line = picked_lines[1] if len(picked_lines) >= 2 else fallback_buyer_line
+    """Premium glass caption card with generous bottom padding."""
     canvas = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(canvas)
     is_shorts = height > width
 
-    title = str(overlay.get("title", "")).strip()
+    title = to_card_title_style(overlay.get("title", ""))
     raw_lines = overlay.get("lines", [])
     if isinstance(raw_lines, str):
         raw_lines = [raw_lines]
-    body_paragraphs = [clean_card_line(x) for x in raw_lines if str(x).strip()]
+
+    body_paragraphs = [to_card_line_style(x) for x in raw_lines if str(x).strip()]
     body_paragraphs = body_paragraphs[:3 if is_shorts else 2]
 
-    gradient_top = int(height * (0.42 if is_shorts else 0.54))
+    # 하단 가독성을 위한 그라데이션
+    gradient_top = int(height * (0.40 if is_shorts else 0.52))
     for y in range(gradient_top, height):
         ratio = (y - gradient_top) / max(1, height - gradient_top)
-        alpha = int((106 if is_shorts else 86) * ratio * ratio)
+        alpha = int((112 if is_shorts else 92) * ratio * ratio)
         draw.line([(0, y), (width, y)], fill=(0, 0, 0, alpha))
 
     card_w = int(width * (0.84 if is_shorts else 0.64))
     card_w = min(card_w, int(width * 0.90))
     card_x = (width - card_w) // 2
-    side_pad = int(width * (0.074 if is_shorts else 0.052))
+
+    side_pad = int(width * (0.058 if is_shorts else 0.042))
     text_max_width = card_w - side_pad * 2
 
     max_lines = 3 if is_shorts else 2
     title_size = 50 if is_shorts else 48
     body_start = 36 if is_shorts else 33
-    body_min = 25 if is_shorts else 23
+    body_min = 24 if is_shorts else 22
+
     title_font = load_font(font_paths["title"], title_size)
 
     body_font, body_lines = fit_text_block(
@@ -795,27 +1218,33 @@ def render_caption_card_png(
         max_width=text_max_width,
         max_lines=max_lines,
     )
+
     title_lines = wrap_text_to_width(draw, title, title_font, text_max_width)[:1] if title else []
 
     title_h = text_size(draw, title_lines[0], title_font)[1] if title_lines else 0
     body_heights = [text_size(draw, line, body_font)[1] for line in body_lines]
-    body_line_gap = 32 if is_shorts else 30
-    title_body_gap = 56 if title_lines and body_lines else 0
+
+    body_line_gap = 34 if is_shorts else 32
+    title_body_gap = 60 if title_lines and body_lines else 0
     body_block_h = sum(body_heights) + max(0, len(body_lines) - 1) * body_line_gap
     total_text_h = title_h + title_body_gap + body_block_h
 
-    pad_y = 86 if is_shorts else 76
-    min_h = 350 if is_shorts else 295
-    max_h = int(height * 0.34)
-    card_h = max(min_h, min(max_h, total_text_h + pad_y * 2))
+    # 핵심: 아래쪽 노란 줄 때문에 bottom padding을 top보다 크게 둠
+    top_pad = 70 if is_shorts else 64
+    bottom_pad = 142 if is_shorts else 122
 
-    available_text_h = card_h - pad_y * 2
+    min_h = 390 if is_shorts else 330
+    max_h = int(height * (0.40 if is_shorts else 0.36))
+    card_h = max(min_h, min(max_h, total_text_h + top_pad + bottom_pad))
+
+    # 그래도 넘칠 가능성이 있으면 폰트 축소
+    available_text_h = card_h - top_pad - bottom_pad
     if total_text_h > available_text_h:
         body_font, body_lines = fit_text_block(
             draw=draw,
             paragraphs=body_paragraphs,
             font_path=font_paths["body"],
-            start_size=max(body_min, body_start - 4),
+            start_size=max(body_min, body_start - 5),
             min_size=body_min,
             max_width=text_max_width,
             max_lines=max_lines,
@@ -825,12 +1254,12 @@ def render_caption_card_png(
         total_text_h = title_h + title_body_gap + body_block_h
 
     if is_shorts:
-        card_y = int(height * 0.57)
-        card_y = min(card_y, height - card_h - 230)
-        card_y = max(220, card_y)
+        card_y = int(height * 0.55)
+        card_y = min(card_y, height - card_h - 220)
+        card_y = max(210, card_y)
         radius = 30
     else:
-        card_y = height - card_h - 72
+        card_y = height - card_h - 82
         radius = 34
 
     x_center = width // 2
@@ -839,31 +1268,48 @@ def render_caption_card_png(
     draw.rounded_rectangle(
         [card_x, card_y + shadow_offset, card_x + card_w, card_y + card_h + shadow_offset],
         radius=radius,
-        fill=(0, 0, 0, 86),
+        fill=(0, 0, 0, 88),
     )
+
     draw.rounded_rectangle(
         [card_x, card_y, card_x + card_w, card_y + card_h],
         radius=radius,
-        fill=(18, 20, 26, 194),
-        outline=(255, 255, 255, 52),
+        fill=(18, 20, 26, 196),
+        outline=(255, 255, 255, 54),
         width=2,
     )
+
     draw.rounded_rectangle(
-        [card_x + 24, card_y + 20, card_x + card_w - 24, card_y + 22],
+        [card_x + 24, card_y + 22, card_x + card_w - 24, card_y + 24],
         radius=2,
-        fill=(255, 255, 255, 52),
+        fill=(255, 255, 255, 50),
     )
+
+    # 노란 줄은 하단 여백 안쪽에 위치. 텍스트와 충분히 떨어뜨림
     accent_w = min(int(card_w * 0.28), 260)
+    accent_y1 = card_y + card_h - 42
+    accent_y2 = card_y + card_h - 35
     draw.rounded_rectangle(
-        [x_center - accent_w // 2, card_y + card_h - 30,
-         x_center + accent_w // 2, card_y + card_h - 24],
+        [x_center - accent_w // 2, accent_y1,
+         x_center + accent_w // 2, accent_y2],
         radius=4,
         fill=(255, 210, 92, 176),
     )
 
-    start_y = card_y + max(42 if is_shorts else 38, (card_h - total_text_h) // 2)
+    start_y = card_y + top_pad
+
     if title_lines:
-        draw_centered_lines(draw, title_lines, title_font, x_center, start_y, (255, 255, 255, 246), 0)
+        draw_centered_lines(
+            draw,
+            title_lines,
+            title_font,
+            x_center,
+            start_y,
+            CARD_TITLE_FILL,
+            0,
+        )
+
+
         start_y += title_h + title_body_gap
 
     draw_centered_lines(
@@ -872,12 +1318,11 @@ def render_caption_card_png(
         body_font,
         x_center,
         start_y,
-        (238, 241, 247, 238),
+        BODY_TEXT_FILL,
         body_line_gap,
     )
 
     canvas.save(out_path)
-
 
 def render_summary_card_png(
     out_path: Path,
@@ -886,54 +1331,61 @@ def render_summary_card_png(
     width: int = 1920,
     height: int = 1080,
 ):
-    """Premium compact summary card. Fits text inside the box."""
+    label_pros = RENDER_PACK["pros"]
+    label_cons = RENDER_PACK["cons"]
+    label_one_line = RENDER_PACK["bottomLine"]
+    """Premium compact summary card with larger bottom padding."""
     canvas = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(canvas)
     is_shorts = height > width
 
-    gradient_top = int(height * (0.36 if is_shorts else 0.44))
+    gradient_top = int(height * (0.34 if is_shorts else 0.42))
     for y in range(gradient_top, height):
         ratio = (y - gradient_top) / max(1, height - gradient_top)
-        alpha = int((122 if is_shorts else 100) * ratio * ratio)
+        alpha = int((126 if is_shorts else 104) * ratio * ratio)
         draw.line([(0, y), (width, y)], fill=(0, 0, 0, alpha))
 
-    pros = [str(x).strip() for x in summary.get("pros", []) if str(x).strip()]
-    cons = [str(x).strip() for x in summary.get("cons", []) if str(x).strip()]
-    one_line = str(summary.get("oneLine", "")).strip()
+    pros = [to_card_line_style(x) for x in summary.get("pros", []) if str(x).strip()]
+    cons = [to_card_line_style(x) for x in summary.get("cons", []) if str(x).strip()]
+    one_line = to_card_line_style(summary.get("oneLine", ""))
 
     sections_src = [
-        ("장점", pros[:2]),
-        ("단점", cons[:2]),
-        ("한줄평", [one_line] if one_line else []),
+        (label_pros, pros[:2]),
+        (label_cons, cons[:2]),
+        (label_one_line, [one_line] if one_line else []),
     ]
 
     card_w = int(width * (0.84 if is_shorts else 0.60))
     card_x = (width - card_w) // 2
-    text_max_width = int(card_w * (0.78 if is_shorts else 0.80))
+    text_max_width = int(card_w * (0.86 if is_shorts else 0.88))
+
     radius = 30 if is_shorts else 34
 
-    max_card_h = int(height * 0.58)
-    min_card_h = 550 if is_shorts else 460
-    section_size = 42 if is_shorts else 38
-    body_size = 31 if is_shorts else 28
-    body_min = 23 if is_shorts else 22
+    max_card_h = int(height * (0.74 if is_shorts else 0.72))
+    min_card_h = 720 if is_shorts else 640
+
+    section_size = 50 if is_shorts else 50
+    body_size = 37 if is_shorts else 38
+    body_min = 27 if is_shorts else 30
 
     best = None
+
     while body_size >= body_min:
         section_font = load_font(font_paths["section"], section_size)
         body_font = load_font(font_paths["body"], body_size)
         one_line_font = load_font(font_paths["body"], body_size)
 
-        label_body_gap = 52 if is_shorts else 46
-        section_gap = 36 if is_shorts else 32
-        line_gap = 16 if is_shorts else 14
+        label_body_gap = 62 if is_shorts else 56
+        section_gap = 44 if is_shorts else 40
+        line_gap = 18 if is_shorts else 16
 
         blocks = []
         total_text_h = 0
 
         for label, items in sections_src:
             wrapped = []
-            font = one_line_font if label == "한줄평" else body_font
+            font = one_line_font if label == label_one_line else body_font
+
             for item in items:
                 wrapped.extend(wrap_text_to_width(draw, clean_card_line(item), font, text_max_width)[:2])
 
@@ -943,12 +1395,28 @@ def render_summary_card_png(
             label_h = text_size(draw, label, section_font)[1]
             line_h = text_size(draw, "가", font)[1]
             block_h = label_h + label_body_gap + len(wrapped) * line_h + max(0, len(wrapped) - 1) * line_gap
-            total_text_h += block_h + (section_gap if blocks else 0)
+
+            if blocks:
+                total_text_h += section_gap
+            total_text_h += block_h
+
             blocks.append((label, wrapped, font, label_h, line_h))
 
-        pad_y = 82 if is_shorts else 74
-        card_h = max(min_card_h, total_text_h + pad_y * 2)
-        best = (blocks, section_font, pad_y, card_h, total_text_h, label_body_gap, section_gap, line_gap)
+        top_pad = 76 if is_shorts else 68
+        bottom_pad = 150 if is_shorts else 132
+        card_h = max(min_card_h, total_text_h + top_pad + bottom_pad)
+
+        best = (
+            blocks,
+            section_font,
+            top_pad,
+            bottom_pad,
+            card_h,
+            total_text_h,
+            label_body_gap,
+            section_gap,
+            line_gap,
+        )
 
         if card_h <= max_card_h:
             break
@@ -956,12 +1424,25 @@ def render_summary_card_png(
         body_size -= 2
         section_size = max(32 if is_shorts else 30, section_size - 1)
 
-    blocks, section_font, pad_y, card_h, total_text_h, label_body_gap, section_gap, line_gap = best
+    (
+        blocks,
+        section_font,
+        top_pad,
+        bottom_pad,
+        card_h,
+        total_text_h,
+        label_body_gap,
+        section_gap,
+        line_gap,
+    ) = best
+
     card_h = min(card_h, max_card_h)
 
-    card_y = int((height - card_h) / 2)
-    if not is_shorts:
-        card_y = min(card_y + 30, height - card_h - 72)
+    if is_shorts:
+        card_y = int((height - card_h) / 2)
+    else:
+        card_y = int((height - card_h) / 2) + 26
+        card_y = min(card_y, height - card_h - 72)
 
     x_center = width // 2
     shadow_offset = 18 if is_shorts else 15
@@ -969,42 +1450,74 @@ def render_summary_card_png(
     draw.rounded_rectangle(
         [card_x, card_y + shadow_offset, card_x + card_w, card_y + card_h + shadow_offset],
         radius=radius,
-        fill=(0, 0, 0, 90),
+        fill=(0, 0, 0, 92),
     )
+
     draw.rounded_rectangle(
         [card_x, card_y, card_x + card_w, card_y + card_h],
         radius=radius,
-        fill=(18, 20, 26, 198),
-        outline=(255, 255, 255, 54),
+        fill=(18, 20, 26, 200),
+        outline=(255, 255, 255, 56),
         width=2,
     )
+
     draw.rounded_rectangle(
-        [card_x + 24, card_y + 20, card_x + card_w - 24, card_y + 22],
+        [card_x + 24, card_y + 22, card_x + card_w - 24, card_y + 24],
         radius=2,
         fill=(255, 255, 255, 52),
     )
+
     accent_w = min(int(card_w * 0.28), 240)
+    accent_y1 = card_y + card_h - 44
+    accent_y2 = card_y + card_h - 37
     draw.rounded_rectangle(
-        [x_center - accent_w // 2, card_y + card_h - 30,
-         x_center + accent_w // 2, card_y + card_h - 24],
+        [x_center - accent_w // 2, accent_y1,
+         x_center + accent_w // 2, accent_y2],
         radius=4,
         fill=(255, 210, 92, 176),
     )
 
-    y = card_y + max(42 if is_shorts else 38, (card_h - total_text_h) // 2)
+    y = card_y + top_pad
 
     for idx, (label, wrapped, font, label_h, line_h) in enumerate(blocks):
         if idx:
             y += section_gap
 
-        draw_centered_lines(draw, [label], section_font, x_center, y, (255, 255, 255, 246), 0)
+        if label == label_pros:
+            section_title_fill = SUMMARY_PROS_TITLE_FILL
+        elif label == label_cons:
+            section_title_fill = SUMMARY_CONS_TITLE_FILL
+        elif label == label_one_line:
+            section_title_fill = SUMMARY_BOTTOM_TITLE_FILL
+        else:
+            section_title_fill = CARD_TITLE_FILL
+
+        draw_centered_lines(
+            draw,
+            [label],
+            section_font,
+            x_center,
+            y,
+            section_title_fill,
+            0,
+        )
+
+
         y += label_h + label_body_gap
 
-        draw_centered_lines(draw, wrapped, font, x_center, y, (238, 241, 247, 238), line_gap)
+        draw_centered_lines(
+            draw,
+            wrapped,
+            font,
+            x_center,
+            y,
+            BODY_TEXT_FILL,
+            line_gap,
+        )
+
         y += len(wrapped) * line_h + max(0, len(wrapped) - 1) * line_gap
 
     canvas.save(out_path)
-
 def render_watermark_png(
     out_path: Path,
     font_paths: dict[str, str],
@@ -1052,6 +1565,10 @@ def build_bgm_prompt(product_name: str, verdict_text: str, narration_text: str) 
 {narration_text[:5000]}
 
 조건:
+- 화면 텍스트 카드와 Summary 카드 문구는 반드시 짧은 '-음/-슴 체'로 작성
+- 예: '착용감이 좋습니다' 대신 '착용감 좋음'
+- 예: '노이즈 캔슬링이 확실합니다' 대신 '노이즈 캔슬링 확실함'
+- 나레이션 문장은 자연스러운 구어체여도 되지만, 화면 카드 문구는 설명체가 아니라 짧은 카드형 문구로 작성
 - 설명, 마크다운, 코드블록 없이 JSON만 출력
 - mood는 bright, premium, calm, tech, warm 중 하나
 - intensity는 1~5 사이. 기본은 밝고 경쾌한 리뷰 영상에 맞게 3 권장
@@ -1407,7 +1924,7 @@ def render_video_with_transitions(
     if len(clips) == 1:
         subprocess.run([
             "ffmpeg", "-y", "-i", str(clips[0]),
-            "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p", "-r", str(fps),
+            "-c:v", "libx264", "-preset", "veryfast", "-crf", "21", "-pix_fmt", "yuv420p", "-r", str(fps),
             str(out_path),
         ], check=True)
         return
@@ -1437,8 +1954,8 @@ def render_video_with_transitions(
         "-r", str(fps),
         "-pix_fmt", "yuv420p",
         "-c:v", "libx264",
-        "-preset", "medium",
-        "-crf", "18",
+        "-preset", "veryfast",
+        "-crf", "21",
         str(out_path),
     ])
     subprocess.run(command, check=True)
@@ -1447,8 +1964,429 @@ def render_video_with_transitions(
 
 
 
-def build_caption_timeline(captions: list[dict], total_seconds: float) -> list[dict]:
-    """Build caption timings independent from image cuts."""
+
+
+def render_product_label_png(
+    out_path: Path,
+    product_name: str,
+    font_paths: dict[str, str],
+    width: int = 1920,
+    height: int = 1080,
+):
+    """왼쪽 상단 반투명 글래스 스타일 제품명 라벨 생성.
+    - 텍스트를 박스 정중앙에 시각적으로 맞춤
+    - 박스는 더 투명하고 세련된 화이트 글래스 느낌
+    """
+    product_name = str(product_name or "").strip()
+    if not product_name:
+        return
+
+    canvas = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(canvas)
+    is_shorts = height > width
+
+    # 크기: 기존보다 조금 더 크게
+    max_width = int(width * (0.72 if is_shorts else 0.50))
+    start_font_size = 54 if is_shorts else 46
+    min_font_size = 28 if is_shorts else 24
+    line_gap = 10 if is_shorts else 8
+
+    left_margin = 34 if is_shorts else 40
+    top_margin = 38 if is_shorts else 30
+
+    pad_x = 34 if is_shorts else 30
+    pad_y = 24 if is_shorts else 20
+    radius = 28 if is_shorts else 24
+
+    shadow_dx = 2
+    shadow_dy = 5 if is_shorts else 4
+
+    font_size = start_font_size
+    font = load_font(font_paths["title"], font_size)
+    lines = wrap_text_to_width(draw, product_name, font, max_width)
+
+    while (len(lines) > 2 or max((text_size(draw, line, font)[0] for line in lines), default=0) > max_width) and font_size > min_font_size:
+        font_size -= 2
+        font = load_font(font_paths["title"], font_size)
+        lines = wrap_text_to_width(draw, product_name, font, max_width)
+
+    lines = lines[:2] if lines else [product_name]
+
+    # bbox 기반으로 실제 시각 높이 계산
+    line_boxes = [draw.textbbox((0, 0), line, font=font) for line in lines]
+    line_widths = [box[2] - box[0] for box in line_boxes]
+    line_heights = [box[3] - box[1] for box in line_boxes]
+
+    text_w = max(line_widths, default=0)
+    text_h = sum(line_heights) + max(0, len(lines) - 1) * line_gap
+
+    pill_w = text_w + pad_x * 2
+    pill_h = text_h + pad_y * 2
+
+    x1 = left_margin
+    y1 = top_margin
+    x2 = x1 + pill_w
+    y2 = y1 + pill_h
+
+    # 그림자
+    draw.rounded_rectangle(
+        [x1 + shadow_dx, y1 + shadow_dy, x2 + shadow_dx, y2 + shadow_dy],
+        radius=radius,
+        fill=(0, 0, 0, 42),
+    )
+
+    # 메인 글래스 박스 - 더 투명하게
+    draw.rounded_rectangle(
+        [x1, y1, x2, y2],
+        radius=radius,
+        fill=(255, 255, 255, 118),
+        outline=(255, 255, 255, 150),
+        width=1,
+    )
+
+    # 아주 은은한 상단 하이라이트
+    draw.rounded_rectangle(
+        [x1 + 16, y1 + 10, x2 - 16, y1 + 12],
+        radius=2,
+        fill=(255, 255, 255, 70),
+    )
+
+    # 아주 약한 하단 포인트
+    accent_w = min(int(pill_w * 0.18), 88 if is_shorts else 72)
+    accent_y = y2 - 14
+    draw.rounded_rectangle(
+        [x1 + 18, accent_y, x1 + 18 + accent_w, accent_y + 4],
+        radius=2,
+        fill=(255, 82, 82, 120),
+    )
+
+    # 텍스트를 "시각적으로" 정중앙에 맞춤
+    current_y = y1 + (pill_h - text_h) / 2
+
+    for line, bbox, lw, lh in zip(lines, line_boxes, line_widths, line_heights):
+        # bbox[1] 보정이 핵심: baseline 때문에 아래로 처지는 문제 방지
+        tx = x1 + (pill_w - lw) / 2 - bbox[0]
+        ty = current_y - bbox[1]
+
+        # 그림자
+        draw.text(
+            (tx + 1, ty + 2),
+            line,
+            font=font,
+            fill=(0, 0, 0, 38),
+        )
+
+        # 본문 텍스트
+        draw.text(
+            (tx, ty),
+            line,
+            font=font,
+            fill=(18, 20, 26, 240),
+        )
+
+        current_y += lh + line_gap
+
+    canvas.save(out_path)
+
+
+def overlay_product_label(
+    base_video_path: Path,
+    out_path: Path,
+    product_name: str,
+    work_dir: Path,
+    font_paths: dict[str, str],
+    width: int = 1920,
+    height: int = 1080,
+    fps: int = 30,
+):
+    """영상 전체 위에 오른쪽 상단 제품명 라벨을 오버레이."""
+    product_name = str(product_name or "").strip()
+    if not product_name:
+        if base_video_path != out_path:
+            subprocess.run(
+                [
+                    "ffmpeg",
+                    "-y",
+                    "-i",
+                    str(base_video_path),
+                    "-c:v",
+                    "copy",
+                    "-an",
+                    str(out_path),
+                ],
+                check=True,
+            )
+        return
+
+    label_path = work_dir / f"product_label_{width}x{height}.png"
+    render_product_label_png(
+        label_path,
+        product_name=product_name,
+        font_paths=font_paths,
+        width=width,
+        height=height,
+    )
+
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-i",
+            str(base_video_path),
+            "-loop",
+            "1",
+            "-i",
+            str(label_path),
+            "-filter_complex",
+            "[0:v][1:v]overlay=0:0:format=auto[outv]",
+            "-map",
+            "[outv]",
+            "-an",
+            "-r",
+            str(fps),
+            "-pix_fmt",
+            "yuv420p",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "veryfast",
+            "-crf",
+            "21",
+            str(out_path),
+        ],
+        check=True,
+    )
+
+
+
+def make_caption_card(title: str, lines: list[str], duration_weight: float = 1.0) -> dict:
+    clean_lines = [str(x).strip() for x in lines if isinstance(x, str) and str(x).strip()]
+    return {
+        "title": str(title or "").strip(),
+        "lines": clean_lines[:3],
+        "durationWeight": duration_weight,
+    }
+
+
+def is_meta_caption_line(value: str) -> bool:
+    """Generic/meta video-description lines must not appear as product cards."""
+    s = str(value or "").strip().lower()
+    if not s:
+        return True
+
+    meta_phrases = [
+        # Korean
+        "실제 사용자 의견",
+        "반복적으로 언급된 부분",
+        "구매 전 확인하면 좋은 포인트",
+        "간결하게 압축",
+        "정리했음",
+        "정리했습니다",
+
+        # English
+        "short summary",
+        "frequently mentioned user opinions",
+        "quick check before buying",
+        "before buying",
+        "summarized briefly",
+        "key points to check",
+
+        # German
+        "kurze zusammenfassung",
+        "häufig genannter",
+        "vor dem kauf",
+        "kurzer check",
+
+        # French
+        "synthèse",
+        "avis utilisateurs",
+        "avant l’achat",
+        "avant l'achat",
+        "points à vérifier",
+
+        # Japanese
+        "ユーザー意見",
+        "購入前",
+        "簡潔に",
+        "まとめ",
+
+        # Spanish / Portuguese
+        "resumen breve",
+        "opiniones de usuarios",
+        "antes de comprar",
+        "antes da compra",
+    ]
+
+    return any(phrase in s for phrase in meta_phrases)
+
+
+def clean_caption_lines(lines: list[str], max_lines: int = 3) -> list[str]:
+    cleaned: list[str] = []
+
+    for line in lines or []:
+        line = str(line or "").strip()
+        if not line:
+            continue
+        if is_meta_caption_line(line):
+            continue
+        if line not in cleaned:
+            cleaned.append(line)
+
+    return cleaned[:max_lines]
+
+
+
+
+def dedupe_caption_cards(cards: list[dict], max_cards: int = 5, max_lines_per_card: int = 2) -> list[dict]:
+    """Merge duplicate caption cards by title and remove duplicate lines."""
+    merged: list[dict] = []
+    by_title: dict[str, dict] = {}
+
+    for card in cards or []:
+        if not isinstance(card, dict):
+            continue
+
+        title = str(card.get("title", "")).strip()
+        lines = card.get("lines", [])
+
+        if isinstance(lines, str):
+            lines = [lines]
+
+        clean_lines = clean_caption_lines([str(x).strip() for x in lines if str(x).strip()], max_lines_per_card)
+
+        if not title or not clean_lines:
+            continue
+
+        key = title.lower()
+
+        if key not in by_title:
+            copied = dict(card)
+            copied["title"] = title
+            copied["lines"] = []
+            copied["durationWeight"] = card.get("durationWeight", 3)
+            by_title[key] = copied
+            merged.append(copied)
+
+        target = by_title[key]
+        existing = set(target.get("lines", []))
+
+        for line in clean_lines:
+            if line not in existing and len(target["lines"]) < max_lines_per_card:
+                target["lines"].append(line)
+                existing.add(line)
+
+    return [card for card in merged if card.get("lines")][:max_cards]
+
+
+
+def expand_shorts_caption_cards(captions: list[dict], summary: dict | None = None) -> list[dict]:
+    """Expand sparse caption cards using only product-specific summary content.
+
+    Never generate generic/meta cards such as "summary of user opinions" or
+    "things to check before buying". Those are instructions about the video,
+    not product facts.
+    """
+    summary = summary if isinstance(summary, dict) else {}
+    expanded: list[dict] = []
+
+    # 1) Keep valid LLM-provided scene captions, but remove meta lines.
+    for item in captions or []:
+        if not isinstance(item, dict):
+            continue
+
+        title = str(item.get("title", "")).strip()
+        raw_lines = item.get("lines", [])
+
+        if isinstance(raw_lines, str):
+            raw_lines = [raw_lines]
+
+        lines = clean_caption_lines([str(x).strip() for x in raw_lines if str(x).strip()], 3)
+
+        if title and lines:
+            copied = dict(item)
+            copied["title"] = title
+            copied["lines"] = lines
+            copied["durationWeight"] = item.get("durationWeight", 3)
+            expanded.append(copied)
+
+    # 2) Add product-specific pros/cons only.
+    pros = summary.get("pros") or summary.get("strengths") or []
+    cons = summary.get("cons") or summary.get("weaknesses") or []
+
+    if isinstance(pros, str):
+        pros = [pros]
+    if isinstance(cons, str):
+        cons = [cons]
+
+    pros_lines = clean_caption_lines([str(x).strip() for x in pros if str(x).strip()], 2)
+    cons_lines = clean_caption_lines([str(x).strip() for x in cons if str(x).strip()], 2)
+
+    existing_text = " ".join(
+        " ".join(card.get("lines", []))
+        for card in expanded
+        if isinstance(card, dict)
+    )
+
+    if pros_lines and not any(line in existing_text for line in pros_lines):
+        expanded.append(make_caption_card(RENDER_PACK["pros"], pros_lines, 2.8))
+
+    if cons_lines and not any(line in existing_text for line in cons_lines):
+        expanded.append(make_caption_card(RENDER_PACK["cons"], cons_lines, 2.4))
+
+    # 3) If nothing product-specific exists, do not fabricate generic cards.
+    return dedupe_caption_cards(expanded, max_cards=5, max_lines_per_card=2)
+
+def caption_card_max_seconds(item: dict, default_seconds: float | None = None) -> float | None:
+    """Return per-card max display seconds for shorts-like timelines."""
+    if default_seconds is None:
+        return None
+
+    title = str(item.get("title") or "").strip()
+    lines = item.get("lines", [])
+    if isinstance(lines, str):
+        lines = [lines]
+    line_count = len([x for x in lines if str(x).strip()])
+
+    bottom_titles = {
+        pack.get("bottomLine", "") for pack in RENDER_LANGUAGE_PACKS.values()
+    } | {"Fazit", "Conclusion", "Conclusión", "Conclusão", "結論", "Bottom Line"}
+
+    pros_titles = {
+        pack.get("pros", "") for pack in RENDER_LANGUAGE_PACKS.values()
+    }
+
+    buyer_titles = {
+        pack.get("buyerCheck", "") for pack in RENDER_LANGUAGE_PACKS.values()
+    }
+
+    # 마지막 결론 카드는 길게 잡으면 지루함
+    if title in bottom_titles:
+        return 2.2
+
+    # 장점/구매 전 확인 카드는 적당히
+    if title in pros_titles or title in buyer_titles:
+        return 3.0
+
+    # 한 줄짜리는 조금 짧게
+    if line_count <= 1:
+        return 2.6
+
+    # 일반 핵심 카드/장면 카드는 충분히 읽을 시간
+    return 3.2
+
+
+def build_caption_timeline(
+    captions: list[dict],
+    total_seconds: float,
+    max_caption_seconds: float | None = None,
+    gap_seconds: float = 0.0,
+) -> list[dict]:
+    """Build caption timings.
+
+    If max_caption_seconds is set, cards are spread continuously across the
+    full video duration. There should be no empty playback time without a text
+    popup. This applies to both shorts and longform.
+    """
     clean: list[dict] = []
 
     for item in captions or []:
@@ -1461,18 +2399,20 @@ def build_caption_timeline(captions: list[dict], total_seconds: float) -> list[d
         if isinstance(lines, str):
             lines = [lines]
 
-        lines = [str(x).strip() for x in lines if str(x).strip()]
+        lines = clean_caption_lines([str(x).strip() for x in lines if str(x).strip()], 3)
 
-        if title or lines:
+        if title and lines:
             copied = dict(item)
             copied["title"] = title
             copied["lines"] = lines[:3]
             clean.append(copied)
 
+    clean = dedupe_caption_cards(clean, max_cards=8, max_lines_per_card=2)
+
     if not clean or total_seconds <= 0:
         return []
 
-    weights = []
+    weights: list[float] = []
     for item in clean:
         try:
             w = float(item.get("durationWeight", 3.0))
@@ -1482,13 +2422,81 @@ def build_caption_timeline(captions: list[dict], total_seconds: float) -> list[d
 
     total_weight = sum(weights) or float(len(clean))
     timeline: list[dict] = []
+
+    # New behavior: when capped mode is used, fill the entire timeline
+    # continuously with caption cards. No gaps.
+    if max_caption_seconds is not None:
+        cursor = 0.0
+
+        for idx, (item, weight) in enumerate(zip(clean, weights)):
+            if cursor >= total_seconds:
+                break
+
+            remaining = total_seconds - cursor
+            remaining_cards = len(clean) - idx
+
+            if remaining_cards <= 1:
+                duration = remaining
+            else:
+                # Allocate by weight but ensure later cards still have time.
+                weighted_duration = total_seconds * weight / total_weight
+                even_floor = remaining / remaining_cards
+
+                if max_caption_seconds and max_caption_seconds >= 10:
+                    min_duration = min(10.0, even_floor)
+                else:
+                    min_duration = min(2.6, even_floor)
+
+                duration = max(min_duration, weighted_duration)
+
+                # Do not consume too much and starve later cards.
+                max_allowed = remaining - min_duration * (remaining_cards - 1)
+                duration = min(duration, max_allowed)
+
+            duration = max(1.0, duration)
+
+            entry = dict(item)
+            entry["start"] = round(cursor, 3)
+            entry["duration"] = round(duration, 3)
+            entry["end"] = round(min(total_seconds, cursor + duration), 3)
+            timeline.append(entry)
+
+            cursor += duration
+
+        if timeline:
+            # Force exact continuous coverage to the end.
+            timeline[0]["start"] = 0.0
+            for i in range(1, len(timeline)):
+                timeline[i]["start"] = timeline[i - 1]["end"]
+                timeline[i]["duration"] = round(
+                    max(1.0, timeline[i]["end"] - timeline[i]["start"]),
+                    3,
+                )
+
+            timeline[-1]["end"] = round(total_seconds, 3)
+            timeline[-1]["duration"] = round(
+                max(1.0, total_seconds - float(timeline[-1]["start"])),
+                3,
+            )
+
+        return timeline
+
+    # Legacy behavior, but also continuous.
     cursor = 0.0
 
-    for item, weight in zip(clean, weights):
-        duration = max(2.8, total_seconds * weight / total_weight)
+    for idx, (item, weight) in enumerate(zip(clean, weights)):
+        remaining = total_seconds - cursor
+        remaining_cards = len(clean) - idx
 
-        if cursor + duration > total_seconds:
-            duration = max(1.8, total_seconds - cursor)
+        if remaining <= 0:
+            break
+
+        if remaining_cards <= 1:
+            duration = remaining
+        else:
+            duration = max(2.8, total_seconds * weight / total_weight)
+            max_allowed = remaining - 2.0 * (remaining_cards - 1)
+            duration = min(duration, max_allowed)
 
         if duration <= 1.0:
             break
@@ -1501,15 +2509,22 @@ def build_caption_timeline(captions: list[dict], total_seconds: float) -> list[d
 
         cursor += duration
 
-        if cursor >= total_seconds - 0.5:
-            break
-
     if timeline:
+        timeline[0]["start"] = 0.0
+        for i in range(1, len(timeline)):
+            timeline[i]["start"] = timeline[i - 1]["end"]
+            timeline[i]["duration"] = round(
+                max(1.0, timeline[i]["end"] - timeline[i]["start"]),
+                3,
+            )
+
         timeline[-1]["end"] = round(total_seconds, 3)
-        timeline[-1]["duration"] = round(max(1.0, total_seconds - float(timeline[-1]["start"])), 3)
+        timeline[-1]["duration"] = round(
+            max(1.0, total_seconds - float(timeline[-1]["start"])),
+            3,
+        )
 
     return timeline
-
 
 def overlay_caption_timeline(
     base_video_path: Path,
@@ -1521,11 +2536,24 @@ def overlay_caption_timeline(
     width: int = 1920,
     height: int = 1080,
     fps: int = 30,
+    product_name: str = "",
+    overlay_total_seconds: float | None = None,
 ) -> list[dict]:
-    """Overlay caption cards on the already-transitioned video by narration time."""
-    timeline = build_caption_timeline(captions, total_seconds)
+    """Overlay narration-timed caption cards and product label in one encode pass.
 
-    if not timeline:
+    total_seconds: caption timeline duration, usually narration audio length.
+    overlay_total_seconds: full video overlay duration, usually narration + summary tail.
+    """
+    timeline = build_caption_timeline(
+        captions,
+        total_seconds,
+        max_caption_seconds=(3.2 if total_seconds <= 90 else None),
+        gap_seconds=(0.2 if total_seconds <= 90 else 0.0),
+    )
+    product_name = str(product_name or "").strip()
+    full_duration = float(overlay_total_seconds or total_seconds or 1.0)
+
+    if not timeline and not product_name:
         if base_video_path != out_path:
             subprocess.run(
                 ["ffmpeg", "-y", "-i", str(base_video_path), "-c:v", "copy", "-an", str(out_path)],
@@ -1538,7 +2566,20 @@ def overlay_caption_timeline(
     for idx, item in enumerate(timeline, 1):
         card_path = work_dir / f"timeline_caption_{idx:02d}_{width}x{height}.png"
         render_caption_card_png(card_path, item, font_paths, width=width, height=height)
-        command.extend(["-loop", "1", "-t", f"{total_seconds + 2.0:.3f}", "-i", str(card_path)])
+        command.extend(["-loop", "1", "-t", f"{full_duration + 2.0:.3f}", "-i", str(card_path)])
+
+    product_input_index = None
+    if product_name:
+        product_label_path = work_dir / f"product_label_{width}x{height}.png"
+        render_product_label_png(
+            product_label_path,
+            product_name=product_name,
+            font_paths=font_paths,
+            width=width,
+            height=height,
+        )
+        product_input_index = 1 + len(timeline)
+        command.extend(["-loop", "1", "-t", f"{full_duration + 2.0:.3f}", "-i", str(product_label_path)])
 
     parts: list[str] = []
     prev = "[0:v]"
@@ -1553,7 +2594,7 @@ def overlay_caption_timeline(
         fade_out_start = max(0.0, duration - fade_out)
 
         card = f"[card{idx}]"
-        out = f"[vt{idx}]" if idx < len(timeline) else "[vout]"
+        out = f"[vt{idx}]"
 
         parts.append(
             f"[{idx}:v]format=rgba,"
@@ -1566,6 +2607,14 @@ def overlay_caption_timeline(
         )
         prev = out
 
+    if product_input_index is not None:
+        # 제품명 라벨은 영상 전체에 항상 표시
+        parts.append(
+            f"{prev}[{product_input_index}:v]overlay=0:0:format=auto,format=yuv420p[vout]"
+        )
+    else:
+        parts.append(f"{prev}format=yuv420p[vout]")
+
     command.extend([
         "-filter_complex", ";".join(parts),
         "-map", "[vout]",
@@ -1573,8 +2622,8 @@ def overlay_caption_timeline(
         "-r", str(fps),
         "-pix_fmt", "yuv420p",
         "-c:v", "libx264",
-        "-preset", "medium",
-        "-crf", "18",
+        "-preset", "veryfast",
+        "-crf", "21",
         str(out_path),
     ])
 
@@ -1800,6 +2849,9 @@ def prepare_narration_assets(args, root: Path, resource_ids: list[str], assets: 
         "assetCount": len(assets),
         "selectedAssetsUsed": bool(load_selected_public_paths(root, args.product_slug)),
         "overlayEnabled": not args.no_overlay,
+        "productLabelEnabled": True,
+        "overlayEncodeMode": "captions-and-product-label-single-pass",
+
         "watermarkEnabled": True,
     }
 
@@ -1820,7 +2872,7 @@ def main():
     ap.add_argument("--product-name", required=True)
     ap.add_argument("--model", default="qwen3:32b")
     ap.add_argument("--limit", type=int, default=32)
-    ap.add_argument("--target-seconds", type=int, default=270)
+    ap.add_argument("--target-seconds", type=int, default=330)
     ap.add_argument("--verdict-file", default="")
     ap.add_argument("--narration-file", default="")
     ap.add_argument("--spoken-narration-file", default="")
@@ -1831,6 +2883,7 @@ def main():
     ap.add_argument("--bgm-mood", default="bright", choices=["auto", "bright", "premium", "calm", "tech", "warm"])
     ap.add_argument("--bgm-volume", type=float, default=0.12)
     ap.add_argument("--video-kind", default="long", choices=["long", "shorts"])
+    ap.add_argument("--tts-voice", default="ko-KR-SunHiNeural")
     args = ap.parse_args()
 
     root = resolve_web_root()
@@ -1878,6 +2931,7 @@ def main():
     overlay_plan_path = Path(args.overlay_plan_file) if args.overlay_plan_file else work_dir / f"{prefix}overlay_plan.json"
     if not args.no_overlay and overlay_plan_path.exists():
         overlay_plan = normalize_overlay_plan(json.loads(overlay_plan_path.read_text("utf-8")), len(assets))
+        overlay_plan = localize_overlay_plan_for_render(overlay_plan)
     else:
         overlay_plan = normalize_overlay_plan({}, len(assets))
         if not args.no_overlay:
@@ -1891,16 +2945,23 @@ def main():
         overlay_plan_path.write_text(json.dumps(overlay_plan, ensure_ascii=False, indent=2), "utf-8")
 
     audio_path = work_dir / f"{prefix}narration_ko.mp3"
-    asyncio.run(make_tts(spoken_narration, audio_path))
+    asyncio.run(make_tts(spoken_narration, audio_path, args.tts_voice))
 
     audio_seconds = ffprobe_duration(audio_path)
-    summary_seconds = (4.0 if is_shorts else 10.0) if not args.no_overlay else 0.0
+    summary_seconds = (3.2 if is_shorts else 10.0) if not args.no_overlay else 0.0
     planned_clip_count = len(assets) + (1 if not args.no_overlay else 0)
     transition_count = max(0, planned_clip_count - 1)
     image_target_seconds = audio_seconds + VIDEO_TRANSITION_DURATION * transition_count
 
     font_paths = find_font_paths() if not args.no_overlay else None
     scene_captions = overlay_plan.get("sceneCaptions", [])
+    if not args.no_overlay:
+        scene_captions = expand_shorts_caption_cards(
+            scene_captions,
+            overlay_plan.get("summary", {}) if isinstance(overlay_plan, dict) else {},
+        )
+        overlay_plan["sceneCaptions"] = scene_captions
+    scene_captions = sanitize_overlay_text_for_language(scene_captions, getattr(args, "tts_voice", "ko"))
     scene_durations = distribute_scene_durations(
         captions=scene_captions,
         scene_count=len(assets),
@@ -1964,7 +3025,7 @@ def main():
 
     caption_timeline: list[dict] = []
     video_base_path = silent_path
-    if not args.no_overlay and scene_captions and font_paths:
+    if not args.no_overlay and font_paths and (scene_captions or getattr(args, "product_name", "")):
         captioned_silent_path = work_dir / f"{prefix}silent_caption_timeline.mp4"
         caption_timeline = overlay_caption_timeline(
             base_video_path=silent_path,
@@ -1976,6 +3037,8 @@ def main():
             width=video_width,
             height=video_height,
             fps=30,
+            product_name=args.product_name,
+            overlay_total_seconds=audio_seconds + summary_seconds,
         )
         video_base_path = captioned_silent_path
 
@@ -1988,6 +3051,7 @@ def main():
     bgm_path = None
     mixed_audio_path = None
     final_audio_duration = audio_seconds + summary_seconds
+    final_video_duration = audio_seconds + summary_seconds
 
     if bgm_enabled:
         bgm_plan = generate_bgm_plan(
@@ -2063,6 +3127,8 @@ def main():
                 "-b:a",
                 "192k",
                 "-shortest",
+                "-t",
+                f"{final_video_duration:.3f}",
                 str(final_path),
             ],
             check=True,
@@ -2112,6 +3178,8 @@ def main():
         "durationSeconds": final_audio_duration,
         "audioDurationSeconds": audio_seconds,
         "summarySeconds": summary_seconds,
+        "summaryTailMode": "shorts-plus-7s" if getattr(args, "shorts", False) else "longform-plus-15s",
+        "finalVideoDuration": final_video_duration,
         "captionTimingMode": "narration-timeline-independent",
         "captionTimeline": caption_timeline,
         "assetCount": len(assets),

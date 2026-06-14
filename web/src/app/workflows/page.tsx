@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import LocalizedLanguageJobs from "./LocalizedLanguageJobs";
+import RegenerateAllLanguagesJob from "./RegenerateAllLanguagesJob";
 
 function videoSrc(publicPath: string) {
   return `/api/video-file?path=${encodeURIComponent(publicPath)}`;
@@ -124,7 +126,7 @@ export default function WorkflowPage() {
   const [state, setState] = useState<any>(null);
   const [assetData, setAssetData] = useState<any>(null);
   const [message, setMessage] = useState("");
-  const [loadingAction, setLoadingAction] = useState("");
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [analysisJob, setAnalysisJob] = useState<any>(null);
   const [narrationJob, setNarrationJob] = useState<any>(null);
   const [videoJob, setVideoJob] = useState<any>(null);
@@ -218,7 +220,45 @@ export default function WorkflowPage() {
   useJobPolling(state?.shortsNarrationJobId, setShortsNarrationJob, "Shorts Script 준비 완료");
   useJobPolling(state?.shortsVideoJobId, setShortsVideoJob, "Shorts Video Generation 완료");
 
-  function updateField(key: string, value: any) {
+  
+  async function runEnglishAction(
+    action: "save-english" | "generate-english-video" | "generate-english-shorts",
+    label: string
+  ) {
+    if (!state) return;
+
+    setLoadingAction(action);
+    setMessage(`${label} 실행 중...`);
+
+    try {
+      const res = await fetch("/api/english-content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action,
+          enNarrationScript: state.enNarrationScript ?? "",
+          enSpokenScript: state.enSpokenScript ?? "",
+          enShortsScript: state.enShortsScript ?? "",
+          enShortsSpokenScript: state.enShortsSpokenScript ?? "",
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || `${label} 실패`);
+      }
+
+      setState(data.state ?? state);
+      setMessage(`${label} 완료`);
+    } catch (error: any) {
+      setMessage(error?.message || `${label} 실패`);
+    } finally {
+      setLoadingAction(null);
+    }
+  }
+
+function updateField(key: string, value: any) {
     setState((prev: any) => ({ ...prev, [key]: value }));
   }
 
@@ -427,7 +467,8 @@ export default function WorkflowPage() {
   }
 
   if (!state) {
-    return <main className="min-h-screen bg-neutral-950 p-8 text-white">Loading...</main>;
+    return <main className="min-h-screen bg-neutral-950 p-8 text-white">Loading...
+      </main>;
   }
 
   const isAnalysisJobRunning = ["PENDING", "RUNNING"].includes(analysisJob?.status);
@@ -455,8 +496,8 @@ export default function WorkflowPage() {
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             onClick={clearWorkflow}
-            disabled={Boolean(loadingAction)}
-            className="rounded-xl border border-red-800 px-4 py-2 text-sm text-red-300 disabled:opacity-50"
+            disabled={false}
+            className="rounded-xl border border-red-800 px-4 py-2 text-sm text-red-300"
           >
             Clear Workflow
           </button>
@@ -499,7 +540,7 @@ export default function WorkflowPage() {
               </label>
             </div>
 
-            <button onClick={() => runAction("save-product", "Product 저장")} disabled={isAnalyzing || blockCriticalActions} className="mt-4 rounded-xl bg-white px-5 py-3 text-sm font-bold text-black disabled:opacity-50">
+            <button onClick={() => runAction("save-product", "Product 저장")} disabled={isAnalyzing || blockCriticalActions} className="mt-4 rounded-xl bg-white px-5 py-3 text-sm font-bold text-black">
               Save Product
             </button>
           </section>
@@ -512,10 +553,10 @@ export default function WorkflowPage() {
             <p className="mt-2 text-sm text-neutral-400">Review Query로 YouTube 리뷰/댓글/Transcript를 더 충분히 수집하고 ranked/verdict JSON을 자동 저장합니다. 기본적으로 후보 영상과 댓글 수집량을 늘려 4~5분 롱폼 나레이션에 쓸 근거를 확보합니다.</p>
             <JobProgress job={analysisJob} onReset={() => resetJob("analysis")} />
             <div className="mt-4 flex flex-wrap gap-2">
-              <button onClick={() => runAction("analyze-reviews", "Review Analysis")} disabled={isAnalyzing || blockCriticalActions} className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-black disabled:opacity-50">
+              <button onClick={() => runAction("analyze-reviews", "Review Analysis")} disabled={isAnalyzing || blockCriticalActions} className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-black">
                 {isAnalyzing ? "Analyzing..." : "Analyze Reviews"}
               </button>
-              <button onClick={() => resetJob("analysis")} disabled={Boolean(loadingAction)} className="rounded-xl border border-red-800 px-5 py-3 text-sm text-red-300 disabled:opacity-50">
+              <button onClick={() => resetJob("analysis")} disabled={false} className="rounded-xl border border-red-800 px-5 py-3 text-sm text-red-300">
                 Reset Analysis Job
               </button>
             </div>
@@ -538,8 +579,8 @@ export default function WorkflowPage() {
             </label>
 
             <div className="mt-4 flex flex-wrap gap-2">
-              <button onClick={() => runAction("check-assets", "Asset 확인")} disabled={isGeneratingVideo || isClearing} className="rounded-xl border border-neutral-700 px-5 py-3 text-sm text-neutral-300 disabled:opacity-50">Check Assets</button>
-              <button onClick={loadWorkflowAssets} disabled={isGeneratingVideo || isClearing} className="rounded-xl border border-neutral-700 px-5 py-3 text-sm text-neutral-300 disabled:opacity-50">Load Assets</button>
+              <button onClick={() => runAction("check-assets", "Asset 확인")} disabled={isGeneratingVideo || isClearing} className="rounded-xl border border-neutral-700 px-5 py-3 text-sm text-neutral-300">Check Assets</button>
+              <button onClick={loadWorkflowAssets} disabled={isGeneratingVideo || isClearing} className="rounded-xl border border-neutral-700 px-5 py-3 text-sm text-neutral-300">Load Assets</button>
               <a href={`/assets?productSlug=${encodeURIComponent(state.productSlug ?? "")}&productName=${encodeURIComponent(state.productName ?? "")}`} target="_blank" rel="noreferrer" className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-black">Open Asset Manager</a>
             </div>
 
@@ -610,7 +651,7 @@ export default function WorkflowPage() {
                     type="button"
                     onClick={loadPronunciationDictionary}
                     disabled={pronunciationSaving || isPreparingNarration || isGeneratingVideo}
-                    className="rounded-xl border border-neutral-700 px-4 py-2 text-xs text-neutral-300 disabled:opacity-50"
+                    className="rounded-xl border border-neutral-700 px-4 py-2 text-xs text-neutral-300"
                   >
                     Reload Dictionary
                   </button>
@@ -618,7 +659,7 @@ export default function WorkflowPage() {
                     type="button"
                     onClick={addPronunciationRow}
                     disabled={pronunciationSaving || isPreparingNarration || isGeneratingVideo}
-                    className="rounded-xl border border-neutral-700 px-4 py-2 text-xs text-neutral-300 disabled:opacity-50"
+                    className="rounded-xl border border-neutral-700 px-4 py-2 text-xs text-neutral-300"
                   >
                     Add Term
                   </button>
@@ -626,7 +667,7 @@ export default function WorkflowPage() {
                     type="button"
                     onClick={savePronunciationDictionary}
                     disabled={pronunciationSaving || isPreparingNarration || isGeneratingVideo}
-                    className="rounded-xl bg-white px-4 py-2 text-xs font-bold text-black disabled:opacity-50"
+                    className="rounded-xl bg-white px-4 py-2 text-xs font-bold text-black"
                   >
                     {pronunciationSaving ? "Saving..." : "Save Dictionary"}
                   </button>
@@ -664,7 +705,7 @@ export default function WorkflowPage() {
                       type="button"
                       onClick={() => removePronunciationRow(row.id)}
                       disabled={pronunciationSaving || isPreparingNarration || isGeneratingVideo}
-                      className="rounded-xl border border-neutral-700 px-3 py-2 text-xs text-neutral-400 disabled:opacity-50"
+                      className="rounded-xl border border-neutral-700 px-3 py-2 text-xs text-neutral-400"
                     >
                       Delete
                     </button>
@@ -695,10 +736,10 @@ export default function WorkflowPage() {
             <JobProgress job={narrationJob} onReset={() => resetJob("narration")} />
 
             <div className="mt-4 flex flex-wrap gap-2">
-              <button onClick={() => runAction("prepare-narration", "Narration Script 준비")} disabled={isAnalyzing || blockCriticalActions} className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-black disabled:opacity-50">
+              <button onClick={() => runAction("prepare-narration", "Narration Script 준비")} disabled={isAnalyzing || blockCriticalActions} className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-black">
                 {isPreparingNarration ? "Preparing..." : "Prepare Narration Script"}
               </button>
-              <button onClick={() => resetJob("narration")} disabled={Boolean(loadingAction)} className="rounded-xl border border-red-800 px-5 py-3 text-sm text-red-300 disabled:opacity-50">
+              <button onClick={() => resetJob("narration")} disabled={false} className="rounded-xl border border-red-800 px-5 py-3 text-sm text-red-300">
                 Reset Narration Job
               </button>
             </div>
@@ -734,10 +775,10 @@ export default function WorkflowPage() {
             </div>
 
             <div className="mt-4 flex flex-wrap gap-2">
-              <button onClick={regenerateSpokenFromNarration} disabled={isPreparingNarration || isGeneratingVideo || !state.narrationScript} className="rounded-xl border border-neutral-700 px-5 py-3 text-sm text-neutral-300 disabled:opacity-50">
+              <button onClick={regenerateSpokenFromNarration} disabled={isPreparingNarration || isGeneratingVideo || !state.narrationScript} className="rounded-xl border border-neutral-700 px-5 py-3 text-sm text-neutral-300">
                 Rebuild Spoken Script from Narration + Dictionary
               </button>
-              <button onClick={() => runAction("save-narration", "Narration Script 저장")} disabled={isPreparingNarration || isGeneratingVideo || !state.narrationScript || !state.spokenScript} className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-black disabled:opacity-50">
+              <button onClick={() => runAction("save-narration", "Narration Script 저장")} disabled={isPreparingNarration || isGeneratingVideo || !state.narrationScript || !state.spokenScript} className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-black">
                 Save Edited Scripts
               </button>
             </div>
@@ -769,7 +810,7 @@ export default function WorkflowPage() {
                   value={state.bgmMood ?? "bright"}
                   onChange={(e) => updateField("bgmMood", e.target.value)}
                   disabled={isGeneratingVideo}
-                  className="rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 outline-none focus:border-neutral-300 disabled:opacity-50"
+                  className="rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 outline-none focus:border-neutral-300"
                 >
                   <option value="bright">Bright / 밝고 경쾌한 기본값</option>
                   <option value="warm">Warm / 따뜻하고 편안함</option>
@@ -786,7 +827,7 @@ export default function WorkflowPage() {
                   value={String(state.bgmVolume ?? 0.12)}
                   onChange={(e) => updateField("bgmVolume", Number(e.target.value))}
                   disabled={isGeneratingVideo}
-                  className="rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 outline-none focus:border-neutral-300 disabled:opacity-50"
+                  className="rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 outline-none focus:border-neutral-300"
                 >
                   <option value="0.06">Very Low / 아주 작게</option>
                   <option value="0.09">Low / 작게</option>
@@ -799,10 +840,10 @@ export default function WorkflowPage() {
 
             <JobProgress job={videoJob} onReset={() => resetJob("video")} />
             <div className="mt-4 flex flex-wrap gap-2">
-              <button onClick={() => runAction("generate-video", "Dubbed Review Video 생성")} disabled={isAnalyzing || blockCriticalActions || !state.narrationScript || !state.spokenScript} className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-black disabled:opacity-50">
+              <button onClick={() => runAction("generate-video", "Dubbed Review Video 생성")} disabled={isAnalyzing || blockCriticalActions || !state.narrationScript || !state.spokenScript} className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-black">
                 {isGeneratingVideo ? "Generating..." : "Generate Dubbed Review Video"}
               </button>
-              <button onClick={() => resetJob("video")} disabled={Boolean(loadingAction)} className="rounded-xl border border-red-800 px-5 py-3 text-sm text-red-300 disabled:opacity-50">
+              <button onClick={() => resetJob("video")} disabled={false} className="rounded-xl border border-red-800 px-5 py-3 text-sm text-red-300">
                 Reset Video Job
               </button>
             </div>
@@ -860,10 +901,10 @@ export default function WorkflowPage() {
 
             <JobProgress job={shortsNarrationJob} onReset={() => resetJob("shorts")} />
             <div className="mt-4 flex flex-wrap gap-2">
-              <button onClick={() => runAction("prepare-shorts", "Shorts Script 준비")} disabled={isAnalyzing || blockCriticalActions} className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-black disabled:opacity-50">
+              <button onClick={() => runAction("prepare-shorts", "Shorts Script 준비")} disabled={isAnalyzing || blockCriticalActions} className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-black">
                 {isPreparingShorts ? "Preparing Shorts..." : "Prepare Shorts Script"}
               </button>
-              <button onClick={() => resetJob("shorts")} disabled={Boolean(loadingAction)} className="rounded-xl border border-red-800 px-5 py-3 text-sm text-red-300 disabled:opacity-50">
+              <button onClick={() => resetJob("shorts")} disabled={false} className="rounded-xl border border-red-800 px-5 py-3 text-sm text-red-300">
                 Reset Shorts Script Job
               </button>
             </div>
@@ -892,10 +933,10 @@ export default function WorkflowPage() {
             </div>
 
             <div className="mt-4 flex flex-wrap gap-2">
-              <button onClick={regenerateShortsSpokenFromNarration} disabled={isPreparingShorts || isGeneratingShorts || !state.shortsScript} className="rounded-xl border border-neutral-700 px-5 py-3 text-sm text-neutral-300 disabled:opacity-50">
+              <button onClick={regenerateShortsSpokenFromNarration} disabled={isPreparingShorts || isGeneratingShorts || !state.shortsScript} className="rounded-xl border border-neutral-700 px-5 py-3 text-sm text-neutral-300">
                 Rebuild Shorts Spoken Script
               </button>
-              <button onClick={() => runAction("save-shorts", "Shorts Script 저장")} disabled={isPreparingShorts || isGeneratingShorts || !state.shortsScript || !state.shortsSpokenScript} className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-black disabled:opacity-50">
+              <button onClick={() => runAction("save-shorts", "Shorts Script 저장")} disabled={isPreparingShorts || isGeneratingShorts || !state.shortsScript || !state.shortsSpokenScript} className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-black">
                 Save Edited Shorts Scripts
               </button>
             </div>
@@ -908,10 +949,10 @@ export default function WorkflowPage() {
 
             <JobProgress job={shortsVideoJob} onReset={() => resetJob("shorts-video")} />
             <div className="mt-4 flex flex-wrap gap-2">
-              <button onClick={() => runAction("generate-shorts", "Shorts Video 생성")} disabled={isAnalyzing || blockCriticalActions || !state.shortsScript || !state.shortsSpokenScript} className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-black disabled:opacity-50">
+              <button onClick={() => runAction("generate-shorts", "Shorts Video 생성")} disabled={isAnalyzing || blockCriticalActions || !state.shortsScript || !state.shortsSpokenScript} className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-black">
                 {isGeneratingShorts ? "Generating Shorts..." : "Generate YouTube Shorts"}
               </button>
-              <button onClick={() => resetJob("shorts-video")} disabled={Boolean(loadingAction)} className="rounded-xl border border-red-800 px-5 py-3 text-sm text-red-300 disabled:opacity-50">
+              <button onClick={() => resetJob("shorts-video")} disabled={false} className="rounded-xl border border-red-800 px-5 py-3 text-sm text-red-300">
                 Reset Shorts Video Job
               </button>
             </div>
@@ -933,6 +974,116 @@ export default function WorkflowPage() {
 
         </div>
       </section>
-    </main>
+    
+        {state ? (
+          <section className="rounded-2xl border border-neutral-800 bg-neutral-950/70 p-6">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold">7. English Review</h2>
+                <p className="mt-2 text-sm text-neutral-400">
+                  English longform and Shorts scripts. Review English/Korean quality here, then generate English videos.
+                </p>
+              </div>
+              <StepBadge value={state.steps?.english} />
+            </div>
+
+            <div className="mt-5 grid gap-4 lg:grid-cols-2">
+              <label className="grid gap-2">
+                <span className="text-sm text-neutral-400">English Longform Narration</span>
+                <textarea
+                  value={state.enNarrationScript ?? ""}
+                  onChange={(e) => updateField("enNarrationScript", e.target.value)}
+                  className="min-h-[300px] rounded-xl border border-neutral-800 bg-black p-4 text-sm text-neutral-100 outline-none focus:border-neutral-500"
+                  placeholder="English longform narration will appear here."
+                />
+              </label>
+
+              <label className="grid gap-2">
+                <span className="text-sm text-neutral-400">English Spoken Script</span>
+                <textarea
+                  value={state.enSpokenScript ?? ""}
+                  onChange={(e) => updateField("enSpokenScript", e.target.value)}
+                  className="min-h-[300px] rounded-xl border border-neutral-800 bg-black p-4 text-sm text-neutral-100 outline-none focus:border-neutral-500"
+                  placeholder="English spoken script will appear here."
+                />
+              </label>
+
+              <label className="grid gap-2">
+                <span className="text-sm text-neutral-400">English Shorts Script</span>
+                <textarea
+                  value={state.enShortsScript ?? ""}
+                  onChange={(e) => updateField("enShortsScript", e.target.value)}
+                  className="min-h-[220px] rounded-xl border border-neutral-800 bg-black p-4 text-sm text-neutral-100 outline-none focus:border-neutral-500"
+                  placeholder="English Shorts script will appear here."
+                />
+              </label>
+
+              <label className="grid gap-2">
+                <span className="text-sm text-neutral-400">English Shorts Spoken Script</span>
+                <textarea
+                  value={state.enShortsSpokenScript ?? ""}
+                  onChange={(e) => updateField("enShortsSpokenScript", e.target.value)}
+                  className="min-h-[220px] rounded-xl border border-neutral-800 bg-black p-4 text-sm text-neutral-100 outline-none focus:border-neutral-500"
+                  placeholder="English Shorts spoken script will appear here."
+                />
+              </label>
+            </div>
+
+            {state.enYoutubeMetadata ? (
+              <div className="mt-5 rounded-xl border border-neutral-800 bg-black p-4 text-sm text-neutral-300">
+                <div className="font-bold text-neutral-100">English YouTube Metadata</div>
+                <pre className="mt-3 overflow-auto whitespace-pre-wrap text-xs text-neutral-400">
+                  {JSON.stringify(state.enYoutubeMetadata, null, 2)}
+                </pre>
+              </div>
+            ) : null}
+
+            <iframe name="englishActionFrame" className="hidden" />
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              <a
+                href="/api/english-content?action=save-english"
+                target="englishActionFrame"
+                className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-black"
+              >
+                Save English Scripts
+              </a>
+
+              <a
+                href="/api/english-content?action=generate-english-video"
+                target="englishActionFrame"
+                className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-black"
+              >
+                Generate English Review Video
+              </a>
+
+              <a
+                href="/api/english-content?action=generate-english-shorts"
+                target="englishActionFrame"
+                className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-black"
+              >
+                Generate English Shorts
+              </a>
+            </div>
+
+            <div className="mt-4 grid gap-2 text-xs text-neutral-500">
+              <div>EN Narration File: <span className="font-mono">{state.enNarrationPath || "-"}</span></div>
+              <div>EN Spoken File: <span className="font-mono">{state.enSpokenNarrationPath || "-"}</span></div>
+              <div>EN Video: <span className="font-mono">{state.enVideoPath || "-"}</span></div>
+              <div>EN Shorts: <span className="font-mono">{state.enShortsVideoPath || "-"}</span></div>
+            </div>
+
+            {state.enVideoPath ? (
+              <video className="mt-5 w-full rounded-xl border border-neutral-800" src={state.enVideoPath} controls />
+            ) : null}
+
+            {state.enShortsVideoPath ? (
+              <video className="mt-5 max-h-[720px] rounded-xl border border-neutral-800" src={state.enShortsVideoPath} controls />
+            ) : null}
+          </section>
+        ) : null}
+              <LocalizedLanguageJobs />
+        <RegenerateAllLanguagesJob />
+      </main>
   );
 }
